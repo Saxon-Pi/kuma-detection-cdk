@@ -20,7 +20,7 @@ const dynamoStack = new DynamoStack(app, 'KumaDetection-DynamoStack', {
   stackName: 'kuma-detection-dynamo',
 });
 
-new KumaDetectionCdkStack(app, 'KumaDetection-AppStack', {
+new KumaDetectionCdkStack(app, 'KumaDetection-NotificationStack', {
   env,
   vpc: networkStack.vpc,
   detectionTable: dynamoStack.kumaDetectionTable,
