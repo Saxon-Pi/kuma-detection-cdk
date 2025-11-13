@@ -22,6 +22,15 @@ export interface KumaDetectionStackProps extends cdk.StackProps {
 // . DynamoDB streams によってSNS通知用 Lambda が起動する
 // . SNSトピックに登録されたメールアドレス宛に通知が送信される
 
+// Kinesis Data Streams テストコマンド（CLI 実行）
+/*
+aws kinesis put-record \
+  --stream-name kuma-detection-stream \
+  --partition-key cam-01 \
+  --cli-binary-format raw-in-base64-out \
+  --data '{"cameraId":"cam-01","detectedAt":"2025-11-13T12:34:56Z","species":"kuma","confidence":0.91,"kumaCount":3}'
+*/
+
 export class KumaDetectionCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: KumaDetectionStackProps) {
     super(scope, id, props);

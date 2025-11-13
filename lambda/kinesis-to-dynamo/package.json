@@ -1,0 +1,7 @@
+{
+  "name": "kinesis-to-dynamo",
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.670.0"
+  }
+}
