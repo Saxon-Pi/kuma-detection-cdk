@@ -2,6 +2,13 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 
+// Dynamo DB スタック
+  // DynamoDBでは partitionKey + sortKey の組み合わせが Primary Key となる（テーブルの主キーを構成する特別な属性）
+  // partitionKey が同一のレコードは、同じ物理パーティションに記録される
+  // -> cameraId が "cam-01" と "cam-02" では、物理パーティションが異なるが、アプリ側からは一つのテーブルに見える
+  // sortKey によって物理パーティション内のレコードの順序が決まるイメージ
+  // Primary Key 以外はアプリ側の裁量で自由にデータを登録できる
+  
 export class DynamoStack extends cdk.Stack {
   // 他スタックから参照できるように公開
   public readonly kumaDetectionTable: dynamodb.Table;
@@ -12,11 +19,6 @@ export class DynamoStack extends cdk.Stack {
     // クマ検知イベント用テーブル
     this.kumaDetectionTable = new dynamodb.Table(this, 'kumaDetectionTable', {
       tableName: 'kumaDetection',
-      // DynamoDBでは partitionKey + sortKey の組み合わせが Primary Key となる（テーブルの主キーを構成する特別な属性）
-      // partitionKey が同一のレコードは、同じ物理パーティションに記録される
-      // -> cameraId が "cam-01" と "cam-02" では、物理パーティションが異なるが、アプリ側からは一つのテーブルに見える
-      // sortKey によって物理パーティション内のレコードの順序が決まるイメージ
-      // Primary Key 以外はアプリ側の裁量で自由にデータを登録できる
       partitionKey: { 
         name: 'cameraId',   // カメラID: カメラ単位でパーティションを分ける
         type: dynamodb.AttributeType.STRING,
