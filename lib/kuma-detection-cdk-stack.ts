@@ -8,6 +8,8 @@ import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import { DynamoEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as kinesisvideo from 'aws-cdk-lib/aws-kinesisvideo';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 // StackPropsの拡張
 export interface KumaDetectionStackProps extends cdk.StackProps {
@@ -16,11 +18,11 @@ export interface KumaDetectionStackProps extends cdk.StackProps {
 }
 
 // クマを検知したときに通知を送信する処理のスタック
-// . Rekognition Video の出力情報を Kinesis Data Streams で転送
-// . ストリーミングデータを Lambda に入力
-// . DynamoDB にレコードが登録される
-// . DynamoDB streams によってSNS通知用 Lambda が起動する
-// . SNSトピックに登録されたメールアドレス宛に通知が送信される
+// . カメラからの映像を Kinesis Video Streams で Rekognition Video に転送 
+// . Rekognition Video の検知結果を Kinesis Data Streams で転送
+// . ストリーミングデータを Lambda で処理し DynamoDB にレコードを登録する
+// . DynamoDB streams を Lambda で処理し クマを検知した場合は SNS でメール通知
+// . SNSトピックに登録されたメールアドレス宛にメッセージが送信される
 
 // Kinesis Data Streams テストコマンド（CLI 実行）
 /*
@@ -35,11 +37,37 @@ export class KumaDetectionCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: KumaDetectionStackProps) {
     super(scope, id, props);
 
+    // Kinesis Video Stream
+    const videoStream = new kinesisvideo.CfnStream(this, 'KumaVideoStream', {
+      name: 'kuma-detection-video-stream',
+      dataRetentionInHours: 24, // 映像解析用のバッファ期間
+    });
+
     // Kinesis Data Stream（Rekognition によるクマ検知結果を転送） 
     const detectionStream = new kinesis.Stream(this, 'KumaDetectionStream', {
       streamName: 'kuma-detection-stream',
       shardCount: 1, // 1シャード
     });
+
+    // Rekognition 用のロール
+    const rekognitionRole = new iam.Role(this, 'RekognitionStreamProcessorRole', {
+      assumedBy: new iam.ServicePrincipal('rekognition.amazonaws.com'),
+    });
+
+    // Rekognition Role に Kinesis Video Stream から映像を読み込むための権限を追加
+    rekognitionRole.addToPolicy(new iam.PolicyStatement({
+      actions: [
+        'kinesisvideo:GetDataEndpoint',
+        'kinesisvideo:GetMedia',
+      ],
+      resources: [videoStream.attrArn],
+    }));
+
+    // Rekognition Role に Kinesis Data Streams へ検知結果を送信するための権限を追加
+    rekognitionRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['kinesis:PutRecord', 'kinesis:PutRecords'],
+      resources: [detectionStream.streamArn],
+    }));
 
     // Kinesis のストリーミングデータを DynamoDB に登録する Lambda
     const kinesisConsumerFunction = new lambda.Function(this, 'KinesisToDynamoFunction', {
