@@ -10,6 +10,8 @@ import * as kinesis from 'aws-cdk-lib/aws-kinesis';
 import { KinesisEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as kinesisvideo from 'aws-cdk-lib/aws-kinesisvideo';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 
 // StackPropsの拡張
 export interface KumaDetectionStackProps extends cdk.StackProps {
@@ -17,11 +19,12 @@ export interface KumaDetectionStackProps extends cdk.StackProps {
   detectionTable: dynamodb.ITable; // DynamoDB テーブルを使用
 }
 
-// クマを検知したときに通知を送信する処理のスタック
-// . カメラからの映像を Kinesis Video Streams で Rekognition Video に転送 
-// . Rekognition Video の検知結果を Kinesis Data Streams で転送
+// クマを検出したときに通知を送信する処理のスタック
+// . カメラからの映像を Kinesis Video Streams でストリーミング
+// . ストリーミングされた映像からフレーム抽出 & クマ検出（EventBridge + Lambda + Rekognition）
+// . 検出結果を Kinesis Data Streams でストリーミング
 // . ストリーミングデータを Lambda で処理し DynamoDB にレコードを登録する
-// . DynamoDB streams を Lambda で処理し クマを検知した場合は SNS でメール通知
+// . DynamoDB streams を Lambda で処理し クマを検出した場合は SNS でメール通知
 // . SNSトピックに登録されたメールアドレス宛にメッセージが送信される
 
 // Kinesis Data Streams テストコマンド（CLI 実行）
@@ -43,7 +46,7 @@ export class KumaDetectionCdkStack extends cdk.Stack {
       dataRetentionInHours: 24, // 映像解析用のバッファ期間
     });
 
-    // Kinesis Data Stream（Rekognition によるクマ検知結果を転送） 
+    // Kinesis Data Stream（Rekognition によるクマ検出結果を転送） 
     const detectionStream = new kinesis.Stream(this, 'KumaDetectionStream', {
       streamName: 'kuma-detection-stream',
       shardCount: 1, // 1シャード
@@ -63,11 +66,56 @@ export class KumaDetectionCdkStack extends cdk.Stack {
       resources: [videoStream.attrArn],
     }));
 
-    // Rekognition Role に Kinesis Data Streams へ検知結果を送信するための権限を追加
+    // Rekognition Role に Kinesis Data Streams へ検出結果を送信するための権限を追加
     rekognitionRole.addToPolicy(new iam.PolicyStatement({
       actions: ['kinesis:PutRecord', 'kinesis:PutRecords'],
       resources: [detectionStream.streamArn],
     }));
+
+    // フレーム抽出 & Rekognition 実行用 Lambda
+    // Kinesis Video Streams -> Lambda -> Kinesis Data Streams
+    const frameExtractorFunction = new lambda.Function(this, 'KumaFrameExtractorFunction', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/frame-extractor'),
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        VIDEO_STREAM_ARN: videoStream.attrArn,              // Kinesis Video Streams ARN
+        DETECTION_STREAM_NAME: detectionStream.streamName,  // Kinesis Data Streams streamName
+        MIN_CONFIDENCE: '70',                               // Rekognition クマ判定の閾値 (%)
+        CAMERA_ID: 'cam-01',                                // カメラID
+      },
+    });
+
+    // Lambda に Kinesis Video Streams へのアクセス権限を付与
+    frameExtractorFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'kinesisvideo:GetDataEndpoint',  // エンドポイント取得
+        'kinesisvideo:GetImages',        // 画像取得（Archived Media）
+      ],
+      resources: [videoStream.attrArn],
+    }));
+
+    // 一部のAPIはリソース指定できないことがあるので、必要なら resource: '*' にしておくのもアリ
+    // frameExtractorFunction.addToRolePolicy(new iam.PolicyStatement({
+    //   actions: ['kinesisvideo:GetImages'],
+    //   resources: ['*'],
+    // }));
+
+    // Rekognition DetectLabels を使用するための権限
+    frameExtractorFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['rekognition:DetectLabels'],
+      resources: ['*'], // DetectLabels はリソース指定できないので *
+    }));
+
+    // 検出結果を Kinesis Data Streams に送信するための権限 (kinesis:PutRecord)
+    detectionStream.grantWrite(frameExtractorFunction);
+
+    // 一定間隔で Lambda を実行する EventBridge Rule
+    const frameScheduleRule = new events.Rule(this, 'KumaFrameExtractorScheduleRule', {
+      schedule: events.Schedule.rate(cdk.Duration.seconds(5)), // N秒間隔で実行
+    });
+    frameScheduleRule.addTarget(new targets.LambdaFunction(frameExtractorFunction)); // ターゲット指定
 
     // Kinesis のストリーミングデータを DynamoDB に登録する Lambda
     const kinesisConsumerFunction = new lambda.Function(this, 'KinesisToDynamoFunction', {
