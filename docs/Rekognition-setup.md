@@ -8,7 +8,7 @@ flowchart LR
     rv[Rekognition Video]
     kds[Kinesis Data Streams]
     l1[Lambda①<br/>検知イベント整形]
-    ddb[(DynamoDB]
+    ddb[(DynamoDB)]
     l2[Lambda②<br/>DynamoDB Streamsトリガー]
     sns[(SNS)]
 
