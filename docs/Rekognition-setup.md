@@ -49,66 +49,108 @@ Rekognition video でクマさんを検出するのは厳しそう…
 公式: http://gstreamer.freedesktop.org/
 
 ### GStreamer セットアップの流れ
-1. ビルドツールをインストール
-```
-brew install cmake pkg-config
-```
-2. GStreamer の本体とプラグインをインストール
-```
-brew install \
-  gstreamer \
-  gst-plugins-base \
-  gst-plugins-good \
-  gst-plugins-bad \
-  gst-libav
-```
-3. OpenSSLをインストール
-```
-brew install openssl
-```
-4.	Kinesis Video Streams Producer SDK（C++版）を導入
-https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp
-ホームディレクトリ直下など、任意の場所で clone
-```
-cd ~
-git clone https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp.git
-cd amazon-kinesis-video-streams-producer-sdk-cpp
-```
-5. ビルド用ディレクトリを作る
-ソースとビルド成果物を分けるタイプのプロジェクトなのでディレクトリを作成する
-```
-mkdir build
-cd build
-# dir: /Users/<UserName>/amazon-kinesis-video-streams-producer-sdk-cpp/build
-```
-`一旦ここまで`   
-6.  cmake 実行（GStreamer有効＋OpenSSL場所指定）
-mac だと OpenSSL の場所は /opt/homebrew/opt/openssl（ARM）か /usr/local/opt/openssl（Intel）あたりになる
-以下のコマンドで確認する
-```
-brew --prefix openssl
-# 例: /opt/homebrew/opt/openssl
-```
-```
-OPENSSL_ROOT=$(brew --prefix openssl)
+> [!NOTE]
+> Kinesis Video Streams ストリームは CDK で作成済みの前提
 
-cmake .. \
-  -DBUILD_GSTREAMER_PLUGIN=ON \
-  -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT
-```
-ポイント：
-	•	-DBUILD_GSTREAMER_PLUGIN=ON
-👉 これで GStreamer プラグイン kvssink をビルド対象にする
-	•	-DOPENSSL_ROOT_DIR=...
-👉 OpenSSL の場所を教えてあげないと「見つからん！」って怒られることがある
+1. ビルドツールをインストール  
 
-cmake がうまくいくと、最後に
+    ```
+    brew install cmake pkg-config
+    ```
 
-> – Build files have been written to: /Users/…/amazon-kinesis-video-streams-producer-sdk-cpp/build
+2. GStreamer の本体とプラグインをインストール  
 
-みたいなメッセージが出るはず
+    ```
+    brew install \
+    gstreamer \
+    gst-plugins-base \
+    gst-plugins-good \
+    gst-plugins-bad \
+    gst-libav
+    ```
 
-5. makeでビルド
-```
-make
-```
+3. OpenSSLをインストール  
+
+    ```
+    brew install openssl
+    ```
+
+4.	Kinesis Video Streams Producer SDK（C++版）を導入  
+
+    https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp  
+    任意のディレクトリに clone する
+    ```
+    cd ~
+    git clone https://github.com/awslabs/amazon-kinesis-video-streams-producer-sdk-cpp.git
+    cd amazon-kinesis-video-streams-producer-sdk-cpp
+    ```
+
+5. ビルド用ディレクトリを作る  
+
+    ソースとビルド成果物を分けるタイプのプロジェクトなのでディレクトリを作成する
+    ```
+    mkdir build
+    cd build
+    # 例: /Users/<UserName>/amazon-kinesis-video-streams-producer-sdk-cpp/build
+    ```
+
+6.  cmake 実行 
+
+    OpenSSLのディレクトリ指定とGStreamerのプラグインを有効にしてビルドする  
+    OpenSSL のディレクトリを以下のコマンドで確認する
+    ```
+    brew --prefix openssl
+    # 例: /opt/homebrew/opt/openssl@3
+    ```
+    環境変数に設定して GStreamer をビルドする
+    ```
+    OPENSSL_ROOT=$(brew --prefix openssl)
+
+    cmake .. \
+    -DBUILD_GSTREAMER_PLUGIN=ON \
+    -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT
+    ```
+    `-DBUILD_GSTREAMER_PLUGIN=ON`  
+    👉 GStreamer プラグイン kvssink をビルド対象にする  
+    `-DOPENSSL_ROOT_DIR=$OPENSSL_ROOT`  
+    👉 OpenSSL の場所を指定する
+
+    cmake が成功すると以下のようなメッセージが表示される  
+    >Build files have been written to: /Users/<UserName>/amazon-kinesis-video-streams-producer-sdk-cpp/build
+
+7. makeでビルド  
+
+    ```
+    make
+    ```
+    これにより build 配下に以下のファイルが生成される  
+	- kvs_gstreamer_sample
+	- kvs_gstreamer_file_uploader_sample
+	- libgstkvssink.so
+	- libKinesisVideoProducer.dylib
+
+8. GStreamer で Kinesis Video Streams に動画をストリーミング  
+
+    今回はビルドで生成された `kvs_gstreamer_sample` を使用して Kinesis Video Streams に動画を送信する
+
+    使い方は以下で確認できる
+
+    ```
+    ./kvs_gstreamer_sample
+    ```
+    >Usage: AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name path/to/file1 path/to/file2 ...
+
+    AWS 認証情報を環境変数で渡しつつ実行する
+
+    ```
+    cd /Users/<UserName>/amazon-kinesis-video-streams-producer-sdk-cpp/build
+
+    export AWS_PROFILE=<your_profile>
+    export AWS_DEFAULT_REGION=ap-northeast-1
+
+    ./kvs_gstreamer_sample <your_stream_name> /Users/<UserName>/path/to/kuma-san.mp4
+    ```
+
+    GStreamer は動画ファイルを 再生 しながら Kinesis Video Streams にフレームを送信する  
+    👉 KVS 側にはリアルカメラとほぼ同じインターフェースで映像が届く  
+    （元動画と同じ fps でストリーミングしてくれる）
