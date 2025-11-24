@@ -36,19 +36,19 @@ exports.handler = async (event) => {
     });
 
     // 映像から画像を取得する期間の設定
-    const endTime = new Date();                             // 現在時刻
-    const startTime = new Date(endTs.getTime() - 5 * 1000); // 現在から N 秒前の時刻 (ms)
+    const endTime = new Date();                              // 現在時刻
+    const startTime = new Date(endTime.getTime() - 60 * 1000); // 現在から 60s 前の時刻 (ms)
     // 画像抽出
-    // -> N 秒間 で 1 秒ごとにフレームをサンプリングし、その中から 1 枚を取得する
+    // -> 60 秒間 に 5 秒ごとにフレームをサンプリング -> 12 枚のフレームを取得する
     const extractedImage = await kvsArchivedClient.send(
       new GetImagesCommand({
         StreamARN: VIDEO_STREAM_ARN,            // Kinesis Video Streams ARN
         ImageSelectorType: 'SERVER_TIMESTAMP',  // Kinesis サーバ側のタイムスタンプ基準
         StartTimestamp: startTime,              // 開始時刻
         EndTimestamp: endTime,                  // 終了時刻
-        SamplingInterval: 1,                    // 1秒間隔でサンプリング
+        SamplingInterval: 5,                    // 5秒間隔でサンプリング
         Format: 'JPEG',                         // 画像フォーマット
-        MaxResults: 1,                          // 1枚だけ取得
+        MaxResults: 12,                         // 12枚だけ取得
       }),
     );
 

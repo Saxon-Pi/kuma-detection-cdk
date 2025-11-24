@@ -113,7 +113,7 @@ export class KumaDetectionCdkStack extends cdk.Stack {
 
     // 一定間隔で Lambda を実行する EventBridge Rule
     const frameScheduleRule = new events.Rule(this, 'KumaFrameExtractorScheduleRule', {
-      schedule: events.Schedule.rate(cdk.Duration.seconds(5)), // N秒間隔で実行
+      schedule: events.Schedule.rate(cdk.Duration.minutes(1)), // 1 min 間隔で実行（sec は不可のため）
     });
     frameScheduleRule.addTarget(new targets.LambdaFunction(frameExtractorFunction)); // ターゲット指定
 
