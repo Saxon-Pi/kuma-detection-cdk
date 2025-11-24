@@ -46,7 +46,7 @@ exports.handler = async (event) => {
         ImageSelectorType: 'SERVER_TIMESTAMP',  // Kinesis サーバ側のタイムスタンプ基準
         StartTimestamp: startTime,              // 開始時刻
         EndTimestamp: endTime,                  // 終了時刻
-        SamplingInterval: 5,                    // 5秒間隔でサンプリング
+        SamplingInterval: 5000,                 // 5秒間隔でサンプリング (ms)
         Format: 'JPEG',                         // 画像フォーマット
         MaxResults: 12,                         // 12枚だけ取得
       }),
