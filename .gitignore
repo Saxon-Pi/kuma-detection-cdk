@@ -10,3 +10,6 @@ cdk.out
 
 # macOS metadata
 .DS_Store
+
+# test data
+/movie/
