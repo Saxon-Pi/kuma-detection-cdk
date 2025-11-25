@@ -52,8 +52,14 @@ exports.handler = async (event) => {
       }),
     );
 
-    // 画像が取得できなかった場合は空配列とし後続処理をスキップ
-    const images = extractedImage.Images || [];
+    // extractedImage.Images = undefined / null なら 空配列 [] とする
+    // 配列として入ってくるならそのまま
+    const images = (extractedImage.Images || [])
+    // 配列の中身の img.ImageContent が存在している かつ バイト列がある 中身のある画像だけを残す
+    // -> ImageContent が undefined / null / 空バイト列 なら捨てる
+      .filter(img => img.ImageContent && img.ImageContent.length > 0);
+
+    // 空配列なら後続処理をスキップ
     if (images.length === 0) {
       console.log('No images found. Skipping.');
       return { statusCode: 200 };
