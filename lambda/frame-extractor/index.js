@@ -68,8 +68,20 @@ exports.handler = async (event) => {
     const image = images[0];
     console.log('Get image at:', image.Timestamp);
 
+    // GetImages から返ってきた ImageContent が jpeg でなければ終了（InvalidImageFormat エラー対策）
+    const buf = Buffer.from(image.ImageContent);
+    console.log('ImageContent length:', buf.length);
+
+    // JPEG のマジックナンバーチェック（0xFF 0xD8）
+    const isJpeg = buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8;
+    if (!isJpeg) {
+      console.warn('Image is not valid JPEG header. Skipping this image.');
+      return { statusCode: 200 };
+    }
+
     // ImageContent は Uint8Array のため、そのまま Rekognition に渡す
-    const imageBytes = image.ImageContent;
+    //const imageBytes = image.ImageContent;
+    const imageBytes = buf;
 
     // ########## Rekognition でフレームからクマさん ʕ•ᴥ•ʔ を検出する ##########
 
