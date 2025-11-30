@@ -9,7 +9,7 @@ const kdsClient = new KinesisClient({});      // Kinesis Data Streams クライ�
 
 const VIDEO_STREAM_ARN = process.env.VIDEO_STREAM_ARN;              // Kinesis Video Streams ARN
 const DETECTION_STREAM_NAME = process.env.DETECTION_STREAM_NAME;    // Kinesis Data Streams streamName
-const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || '70');  // Rekognition クマ判定の閾値 (%)
+const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || '50');  // Rekognition クマ判定の閾値 (%)
 const CAMERA_ID = process.env.CAMERA_ID || 'cam-unknown';           // カメラID
 
 // ストリーミングされた映像からフレームを抽出し、Rekognition によるクマ検出を行う Lambda
@@ -65,9 +65,6 @@ exports.handler = async (event) => {
       return { statusCode: 200 };
     }
 
-    const image = images[0];
-    console.log('Get image at:', image.Timestamp);
-
     /*
     ### KVS (GetImages) -> Rekognition で InvalidImageFormatException が発生した時の対策メモ ###
     Image first bytes: /9j/4AAQSkZJRgAB... 
@@ -83,6 +80,8 @@ exports.handler = async (event) => {
 
     // KVS から取得した全てのフレームを Rekognition に判定させる
     for (const img of images) {
+      console.log('Get image at:', img.Timestamp);
+
       // ① Uint8Array -> 文字列（Base64 テキスト）に変換
       const b64 = Buffer.from(img.ImageContent).toString('utf-8');
       console.log('Image base64 head:', b64.slice(0, 32));
