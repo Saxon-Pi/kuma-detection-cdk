@@ -68,20 +68,39 @@ exports.handler = async (event) => {
     const image = images[0];
     console.log('Get image at:', image.Timestamp);
 
-    // GetImages から返ってきた ImageContent が jpeg でなければ終了（InvalidImageFormat エラー対策）
-    const buf = Buffer.from(image.ImageContent);
-    console.log('ImageContent length:', buf.length);
+    /*
+    ### KVS (GetImages) -> Rekognition で InvalidImageFormatException が発生した時の対策メモ ###
+    Image first bytes: /9j/4AAQSkZJRgAB... 
+    -> JPEG の Base64 エンコード文字列の先頭
+    KVS のGetImages が返してきた ImageContent は「JPEG 生バイト」ではなく Base64 文字列をバイト列にしたもの（＝ASCII の /9j/4AAQ...）
+	  それをそのまま Image: { Bytes: imageBytes } として Rekognition に渡すことで InvalidImageFormatException が発生している
 
+    TODO:
+    ① ImageContent を UTF-8 文字列として取り出す
+    ② その文字列を base64 デコードして、本物の JPEG バイナリにする
+    ③ その JPEG バイナリを Rekognition に渡す
+    */
+
+    // ① Uint8Array -> 文字列（Base64 テキスト）に変換
+    const b64 = Buffer.from(image.ImageContent).toString('utf-8');
+    console.log('Image base64 head:', b64.slice(0, 32));
+
+    // ② Base64 テキスト → 本物の JPEG バイト列に変換
+    const jpegBuf = Buffer.from(b64, 'base64');
+    console.log('JPEG length:', jpegBuf.length);
+    console.log('JPEG header bytes:', Array.from(jpegBuf.subarray(0, 4)));
+    console.log('JPEG header bytes:', Array.from(jpegBuf.subarray(0, 4)));
+    // -> ここが [255, 216, 255, ...] のようになれば JPEG になっている
+
+    // GetImages から返ってきた ImageContent が jpeg でなければ終了（InvalidImageFormat エラー対策）
     // JPEG のマジックナンバーチェック（0xFF 0xD8）
-    const isJpeg = buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8;
-    if (!isJpeg) {
-      console.warn('Image is not valid JPEG header. Skipping this image.');
+    if (jpegBuf.length < 4 || jpegBuf[0] !== 0xff || jpegBuf[1] !== 0xd8) {
+      console.warn('Decoded data is not JPEG. Skipping this image.');
       return { statusCode: 200 };
     }
 
-    // ImageContent は Uint8Array のため、そのまま Rekognition に渡す
-    //const imageBytes = image.ImageContent;
-    const imageBytes = buf;
+    // ③ Rekognition に渡すのはデコード済みの JPEG バイト列とする
+    const imageBytes = jpegBuf;
 
     // ########## Rekognition でフレームからクマさん ʕ•ᴥ•ʔ を検出する ##########
 
