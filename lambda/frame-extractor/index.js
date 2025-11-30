@@ -46,14 +46,20 @@ exports.handler = async (event) => {
         ImageSelectorType: 'SERVER_TIMESTAMP',  // Kinesis サーバ側のタイムスタンプ基準
         StartTimestamp: startTime,              // 開始時刻
         EndTimestamp: endTime,                  // 終了時刻
-        SamplingInterval: 5,                    // 5秒間隔でサンプリング
+        SamplingInterval: 5000,                 // 5秒間隔でサンプリング (ms)
         Format: 'JPEG',                         // 画像フォーマット
         MaxResults: 12,                         // 12枚だけ取得
       }),
     );
 
-    // 画像が取得できなかった場合は空配列とし後続処理をスキップ
-    const images = extractedImage.Images || [];
+    // extractedImage.Images = undefined / null なら 空配列 [] とする
+    // 配列として入ってくるならそのまま
+    const images = (extractedImage.Images || [])
+    // 配列の中身の img.ImageContent が存在している かつ バイト列がある 中身のある画像だけを残す
+    // -> ImageContent が undefined / null / 空バイト列 なら捨てる
+      .filter(img => img.ImageContent && img.ImageContent.length > 0);
+
+    // 空配列なら後続処理をスキップ
     if (images.length === 0) {
       console.log('No images found. Skipping.');
       return { statusCode: 200 };
@@ -62,8 +68,20 @@ exports.handler = async (event) => {
     const image = images[0];
     console.log('Get image at:', image.Timestamp);
 
+    // GetImages から返ってきた ImageContent が jpeg でなければ終了（InvalidImageFormat エラー対策）
+    const buf = Buffer.from(image.ImageContent);
+    console.log('ImageContent length:', buf.length);
+
+    // JPEG のマジックナンバーチェック（0xFF 0xD8）
+    const isJpeg = buf.length > 4 && buf[0] === 0xff && buf[1] === 0xd8;
+    if (!isJpeg) {
+      console.warn('Image is not valid JPEG header. Skipping this image.');
+      return { statusCode: 200 };
+    }
+
     // ImageContent は Uint8Array のため、そのまま Rekognition に渡す
-    const imageBytes = image.ImageContent;
+    //const imageBytes = image.ImageContent;
+    const imageBytes = buf;
 
     // ########## Rekognition でフレームからクマさん ʕ•ᴥ•ʔ を検出する ##########
 
