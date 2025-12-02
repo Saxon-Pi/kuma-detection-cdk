@@ -15,16 +15,16 @@ const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || '50');  // Rekogniti
 const CAMERA_ID = process.env.CAMERA_ID || 'cam-unknown';           // カメラID
 const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレーム格納用バケット名
 
-// JST の現在時刻を ISO 表記で出力
-function nowJstIso() {
-  const now = new Date(); // UTC
-  // UTC -> JST（例: 2025-11-30T22:16:17.119+09:00）
-  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const iso = jst.toISOString().replace('Z', '+09:00');
-  // 日付の取得（例: 2025-11-30）
-  const datePart = iso.slice(0, 10);
-  return { iso, datePart };
-}
+  // 現在時刻（JST）を ISO 表記で出力
+  function nowJstIso() {
+    const now = new Date(); // UTC
+    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const iso = jst.toISOString().replace('Z', '+09:00'); // 2025-11-30T23:15:30.123+09:00
+    const date = iso.slice(0, 10);      // 2025-11-30
+    const time = iso.slice(11, 19);     // 23:15:30
+    const hhmm = time.slice(0, 5);      // 23:15
+    return { iso, date, time, hhmm };
+  }
 
 // ストリーミングされた映像からフレームを抽出し、Rekognition によるクマ検出を行う Lambda
 // Kinesis Video Streams -> Lambda (EventBridge トリガー) -> Kinesis Data Streams（クマを検出した場合）
@@ -95,8 +95,14 @@ exports.handler = async (event) => {
     // クマさん発見フラグ
     let foundKuma = false;
 
+    // Lambda実行時間の取得（フレーム保存 prefix で使用）
+    const { iso, date, time, hhmm } = nowJstIso();
+    let frameIndex = 0;
+
     // KVS から取得した全てのフレームを Rekognition に判定させる
     for (const img of images) {
+      const frameNo = String(frameIndex).padStart(3, '0'); // フレーム番号
+
       console.log('Get image at:', img.Timestamp);
 
       // ① Uint8Array -> 文字列（Base64 テキスト）に変換
@@ -118,6 +124,21 @@ exports.handler = async (event) => {
 
       // ③ Rekognition に渡すのはデコード済みの JPEG バイト列とする
       const imageBytes = jpegBuf;
+
+      // Rekognition で判定する全てのフレームを S3 に保存
+      const ts = img.Timestamp ? new Date(img.Timestamp * 1000) : new Date();
+      const tsIso = ts.toISOString();             // 例: 2025-11-30T14:16:17.123Z
+      const tsSafe = tsIso.replace(/[:.]/g, '-'); // 例: 2025-11-30T14-16-17-123Z
+
+      const allFrameKey = 
+        `all-frames/${CAMERA_ID}/${date}/${hhmm}/frame-${frameNo}-${tsSafe}.jpg`;
+
+      await s3.send(new PutObjectCommand({
+        Bucket: DETECTION_BUCKET,
+        Key: allFrameKey,
+        Body: imageBytes,
+        ContentType: 'image/jpeg',
+      }));
 
       // ########## Rekognition でフレームからクマさん ʕ•ᴥ•ʔ を検出する ##########
 
@@ -165,6 +186,8 @@ exports.handler = async (event) => {
       }
       */
 
+      frameIndex++;
+
       // このフレームでクマが検出されなければ、次のフレームに遷移
       if (kumaLabels.length === 0) {
         continue;
@@ -178,12 +201,9 @@ exports.handler = async (event) => {
       // -> Confidence の降順ソートをした後にインデックス [0] の先頭要素を取得する（Confidence 最大のラベルを抽出）
       const topKuma = kumaLabels.sort((a, b) => (b.Confidence || 0) - (a.Confidence || 0))[0];
       // * 配列の連続した二つの要素 (a, b) を減算 (b - a) して、正の値なら b を a の前に配置して、負の値ならそのままにする *
-      
-      // JSTの現在時刻を検出時刻とする
-      const { iso: detectedAtIsoJst, datePart } = nowJstIso(); 
 
       // クマフレームを S3 に保存する
-      const objectKey = `kuma-detections/${CAMERA_ID}/${datePart}/${detectedAtIsoJst}.jpg`;
+      const objectKey = `kuma-detections/${CAMERA_ID}/${date}/${hhmm}/frame-${frameNo}-${tsSafe}.jpg`;
       await s3.send(
         new PutObjectCommand({
           Bucket: DETECTION_BUCKET,
@@ -204,7 +224,7 @@ exports.handler = async (event) => {
       // -> クマラベルの、Confidence（スコア）が一番高い要素をベースにペイロードを構成している
       const payload = {
         cameraId: CAMERA_ID,                  // カメラ ID
-        detectedAt: detectedAtIsoJst,         // 検出時刻
+        detectedAt: tsIso,                    // 検出時刻（img.Timestamp）
         species: 'kuma',                      // (ᵔᴥᵔ)
         confidence: topKuma.Confidence || 0,  // クマスコア
         kumaCount: 1,                         // クマカウント（とりあえず 1 固定）
