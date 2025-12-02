@@ -12,6 +12,7 @@ import * as kinesisvideo from 'aws-cdk-lib/aws-kinesisvideo';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 
 // StackPropsの拡張
 export interface KumaDetectionStackProps extends cdk.StackProps {
@@ -39,6 +40,13 @@ aws kinesis put-record \
 export class KumaDetectionCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: KumaDetectionStackProps) {
     super(scope, id, props);
+
+    // クマ検出フレーム保存用バケット
+    const detectionBucket = new s3.Bucket(this, 'KumaDetectionFramesBucket', {
+      bucketName: cdk.PhysicalName.GENERATE_IF_NEEDED,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
 
     // Kinesis Video Stream
     const videoStream = new kinesisvideo.CfnStream(this, 'KumaVideoStream', {
@@ -84,9 +92,11 @@ export class KumaDetectionCdkStack extends cdk.Stack {
         DETECTION_STREAM_NAME: detectionStream.streamName,  // Kinesis Data Streams streamName
         MIN_CONFIDENCE: '70',                               // Rekognition クマ判定の閾値 (%)
         CAMERA_ID: 'cam-01',                                // カメラID
+        DETECTION_BUCKET: detectionBucket.bucketName,       // フレーム格納用バケット名
       },
     });
-
+    // Lambda に s3:PutObject 権限を付与
+    detectionBucket.grantPut(frameExtractorFunction);
     // Lambda に Kinesis Video Streams へのアクセス権限を付与
     frameExtractorFunction.addToRolePolicy(new iam.PolicyStatement({
       actions: [

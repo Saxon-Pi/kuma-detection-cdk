@@ -2,15 +2,29 @@ const { KinesisVideoClient, GetDataEndpointCommand } = require('@aws-sdk/client-
 const { KinesisVideoArchivedMediaClient, GetImagesCommand } = require('@aws-sdk/client-kinesis-video-archived-media');
 const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { KinesisClient, PutRecordCommand } = require('@aws-sdk/client-kinesis');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 const kvsClient = new KinesisVideoClient({}); // Kinesis Video Streams クライアント
 const rekClient = new RekognitionClient({});  // Rekognition クライアント
 const kdsClient = new KinesisClient({});      // Kinesis Data Streams クライアント
+const s3 = new S3Client({});
 
 const VIDEO_STREAM_ARN = process.env.VIDEO_STREAM_ARN;              // Kinesis Video Streams ARN
 const DETECTION_STREAM_NAME = process.env.DETECTION_STREAM_NAME;    // Kinesis Data Streams streamName
 const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || '50');  // Rekognition クマ判定の閾値 (%)
 const CAMERA_ID = process.env.CAMERA_ID || 'cam-unknown';           // カメラID
+const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレーム格納用バケット名
+
+// JST の現在時刻を ISO 表記で出力
+function nowJstIso() {
+  const now = new Date(); // UTC
+  // UTC -> JST（例: 2025-11-30T22:16:17.119+09:00）
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const iso = jst.toISOString().replace('Z', '+09:00');
+  // 日付の取得（例: 2025-11-30）
+  const datePart = iso.slice(0, 10);
+  return { iso, datePart };
+}
 
 // ストリーミングされた映像からフレームを抽出し、Rekognition によるクマ検出を行う Lambda
 // Kinesis Video Streams -> Lambda (EventBridge トリガー) -> Kinesis Data Streams（クマを検出した場合）
@@ -77,6 +91,9 @@ exports.handler = async (event) => {
     ② その文字列を base64 デコードして、本物の JPEG バイナリにする
     ③ その JPEG バイナリを Rekognition に渡す
     */
+
+    // クマさん発見フラグ
+    let foundKuma = false;
 
     // KVS から取得した全てのフレームを Rekognition に判定させる
     for (const img of images) {
@@ -153,13 +170,33 @@ exports.handler = async (event) => {
         continue;
       }
 
+      // ここまで実行される場合、このフレームでクマを検出したことになる
+      // クマさん発見フラグを true に
+      foundKuma = true;
+
       // 一番スコアの高いクマさんラベルを使う
       // -> Confidence の降順ソートをした後にインデックス [0] の先頭要素を取得する（Confidence 最大のラベルを抽出）
       const topKuma = kumaLabels.sort((a, b) => (b.Confidence || 0) - (a.Confidence || 0))[0];
       // * 配列の連続した二つの要素 (a, b) を減算 (b - a) して、正の値なら b を a の前に配置して、負の値ならそのままにする *
       
-      // 検出時間（ISO 8601 形式の文字列に変換: 2025-11-18T13:45:30.123Z）
-      const detectedAtIso = new Date().toISOString();
+      // JSTの現在時刻を検出時刻とする
+      const { iso: detectedAtIsoJst, datePart } = nowJstIso(); 
+
+      // クマフレームを S3 に保存する
+      const objectKey = `kuma-detections/${CAMERA_ID}/${datePart}/${detectedAtIsoJst}.jpg`;
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: DETECTION_BUCKET,
+          Key: objectKey,
+          Body: imageBytes,
+          ContentType: 'image/jpeg',
+        }),
+      );
+      console.log('Saved detection frame to S3:', objectKey);
+
+      // BoundingBox（トップクマ一頭分）
+      const firstInstance = (topKuma.Instances || [])[0];
+      const bbox = firstInstance ? firstInstance.BoundingBox : null;
 
       // ########## クマ検出結果を Kinesis Data Streams に送信する ##########
 
@@ -167,11 +204,14 @@ exports.handler = async (event) => {
       // -> クマラベルの、Confidence（スコア）が一番高い要素をベースにペイロードを構成している
       const payload = {
         cameraId: CAMERA_ID,                  // カメラ ID
-        detectedAt: detectedAtIso,            // 検出時刻
+        detectedAt: detectedAtIsoJst,         // 検出時刻
         species: 'kuma',                      // (ᵔᴥᵔ)
         confidence: topKuma.Confidence || 0,  // クマスコア
         kumaCount: 1,                         // クマカウント（とりあえず 1 固定）
         rawLabelName: topKuma.Name,           // ラベルの Name
+        s3Bucket: DETECTION_BUCKET,           // フレーム格納用バケット名
+        s3Key: objectKey,                     // オブジェクトキー
+        boundingBox: bbox,                    // { Width, Height, Left, Top } (0〜1 の割合)
       };
 
       // ペイロードの送信
@@ -190,8 +230,12 @@ exports.handler = async (event) => {
       //return { statusCode: 200 };
     }
 
-    // 全フレームでクマさんを検出できなかった場合
-    console.log('Checked all frames, no kuma-san. Anshin!');
+    // 全フレーム判定後の処理
+    if (!foundKuma) {
+      console.log('Checked all frames, no kuma-san. Anshin!');
+    } else {
+      // tokuni-nothing
+    }
     return { statusCode: 200 };
 
   } catch (err) {
