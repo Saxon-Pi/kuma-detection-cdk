@@ -14,6 +14,7 @@ const DETECTION_STREAM_NAME = process.env.DETECTION_STREAM_NAME;    // Kinesis D
 const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || '50');  // Rekognition クマ判定の閾値 (%)
 const CAMERA_ID = process.env.CAMERA_ID || 'cam-unknown';           // カメラID
 const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレーム格納用バケット名
+const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test にすると取得フレーム周期を増加
 
   // 現在時刻（JST）を ISO 表記で出力
   function nowJstIso() {
@@ -30,6 +31,29 @@ const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレー
   function toJstIso(date) {
     const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
     return jst.toISOString().replace('Z', '+09:00');
+  }
+
+  // 
+  function getSamplingConfig() {
+    // test　&　prod 共通: KVS の直近 60秒間 の映像からフレームを取得する
+    const windowMs = 60 * 1000;
+
+    // windowMs / intervalMs = maxResults
+    // test: 毎分最大30フレーム取得
+    if (FRAME_MODE === 'test') {
+      return {
+        windowMs,           // 期間 (ms)
+        intervalMs: 2000,   // 周期 (ms) -> SamplingInterval
+        maxResults: 30,     // フレーム取得枚数の上限
+      };
+    }
+
+    // prod: 毎分最大12フレーム取得
+    return {
+      windowMs,
+      intervalMs: 5000,
+      maxResults: 12,
+    };
   }
 
 // ストリーミングされた映像からフレームを抽出し、Rekognition によるクマ検出を行う Lambda
@@ -55,9 +79,13 @@ exports.handler = async (event) => {
       endpoint: kvsEp.DataEndpoint,
     });
 
+    // モード別のサンプリング設定を取得
+    const sampling = getSamplingConfig();
+    console.log('Frame sampling config:', sampling, 'mode=', FRAME_MODE);
+
     // 映像から画像を取得する期間の設定
-    const endTime = new Date();                              // 現在時刻
-    const startTime = new Date(endTime.getTime() - 60 * 1000); // 現在から 60s 前の時刻 (ms)
+    const endTime = new Date();                                        // 現在時刻
+    const startTime = new Date(endTime.getTime() - sampling.windowMs); // 現在から windowMs: 60s 前の時刻
     // 画像抽出
     // -> 60 秒間 に 5 秒ごとにフレームをサンプリング -> 12 枚のフレームを取得する
     const extractedImage = await kvsArchivedClient.send(
@@ -66,9 +94,9 @@ exports.handler = async (event) => {
         ImageSelectorType: 'SERVER_TIMESTAMP',  // Kinesis サーバ側のタイムスタンプ基準
         StartTimestamp: startTime,              // 開始時刻
         EndTimestamp: endTime,                  // 終了時刻
-        SamplingInterval: 5000,                 // 5秒間隔でサンプリング (ms)
+        SamplingInterval: sampling.intervalMs,  // フレームのサンプリング間隔（モード別）
         Format: 'JPEG',                         // 画像フォーマット
-        MaxResults: 12,                         // 12枚だけ取得
+        MaxResults: sampling.maxResults,        // フレームの取得枚数の上限
       }),
     );
 

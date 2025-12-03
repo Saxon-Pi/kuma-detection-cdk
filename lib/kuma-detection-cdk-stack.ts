@@ -90,9 +90,10 @@ export class KumaDetectionCdkStack extends cdk.Stack {
       environment: {
         VIDEO_STREAM_ARN: videoStream.attrArn,              // Kinesis Video Streams ARN
         DETECTION_STREAM_NAME: detectionStream.streamName,  // Kinesis Data Streams streamName
-        MIN_CONFIDENCE: '70',                               // Rekognition クマ判定の閾値 (%)
+        MIN_CONFIDENCE: '50',                               // Rekognition クマ判定の閾値 (%)
         CAMERA_ID: 'cam-01',                                // カメラID
         DETECTION_BUCKET: detectionBucket.bucketName,       // フレーム格納用バケット名
+        FRAME_MODE: 'test',                                 // test / prod（フレーム取得枚数の切り替え）
       },
     });
     // Lambda に s3:PutObject 権限を付与
