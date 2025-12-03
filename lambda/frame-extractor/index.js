@@ -33,7 +33,7 @@ const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test に�
     return jst.toISOString().replace('Z', '+09:00');
   }
 
-  // 
+  // モード別にフレームの取得枚数を切り替える（パラメータ設定）
   function getSamplingConfig() {
     // test　&　prod 共通: KVS の直近 60秒間 の映像からフレームを取得する
     const windowMs = 60 * 1000;
