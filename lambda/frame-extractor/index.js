@@ -16,6 +16,10 @@ const CAMERA_ID = process.env.CAMERA_ID || 'cam-unknown';           // カメラ
 const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレーム格納用バケット名
 const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test にすると取得フレーム周期を増加
 
+// TODO: KVS -> Rekognition のフレーム取得 & 検出デバッグ
+//       S3 Notification -> SQS(?) -> Lambda によるフレーム画像 + BBOX 合体処理実装
+//       DynamoDB登録 -> SNS メール通知のデバッグ（DDB Streams が怪しい）
+
   // 現在時刻（JST）を ISO 表記で出力
   function nowJstIso() {
     const now = new Date(); // UTC
