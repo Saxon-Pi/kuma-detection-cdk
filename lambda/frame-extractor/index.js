@@ -3,6 +3,7 @@ const { KinesisVideoArchivedMediaClient, GetImagesCommand } = require('@aws-sdk/
 const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { KinesisClient, PutRecordCommand } = require('@aws-sdk/client-kinesis');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const Jimp = require('jimp');
 
 const kvsClient = new KinesisVideoClient({}); // Kinesis Video Streams クライアント
 const rekClient = new RekognitionClient({});  // Rekognition クライアント
@@ -17,7 +18,6 @@ const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレー
 const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test にすると取得フレーム周期を増加
 
 // TODO: KVS -> Rekognition のフレーム取得 & 検出デバッグ
-//       S3 Notification -> SQS(?) -> Lambda によるフレーム画像 + BBOX 合体処理実装
 //       DynamoDB登録 -> SNS メール通知のデバッグ（DDB Streams が怪しい）
 
   // 現在時刻（JST）を ISO 表記で出力
@@ -58,6 +58,48 @@ const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test に�
       intervalMs: 5000,
       maxResults: 12,
     };
+  }
+
+  // Rekognition で検出した Kuma-BoundingBox を元に、フレームに BBOX を描画する（JPEG Buffer）
+  async function drawBBoxJpeg(imageBytes, bbox) {
+    // bbox: { Left, Top, Width, Height } （すべて 0〜1 の割合）
+    const img = await Jimp.read(imageBytes); // 画像読み込み
+    const imgH = img.bitmap.height;          // タテ画素数
+    const imgW = img.bitmap.width;           // ヨコ画素数
+    // BBOX は左上の点（x, y）を始点とした幅:w 高さ:h の四角形
+    const x = Math.round(bbox.Left * imgW);
+    const y = Math.round(bbox.Top * imgH);
+    const w = Math.round(bbox.Width * imgW);
+    const h = Math.round(bbox.Height * imgH);
+
+    // 枠の太さ（画像サイズに応じて調整、2px〜くらい）
+    const thickness = Math.max(2, Math.round(Math.min(imgW, imgH) * 0.01));
+    const color = Jimp.rgbaToInt(0, 255, 0, 255); // 枠の色（RGB）
+
+    // 上下の線を描画
+    for (let dy = 0; dy < thickness; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        if (x + dx < imgW && y + dy < imgH) {
+          img.setPixelColor(color, x + dx, y + dy);
+        }
+        if (x + dx < imgW && y + h - 1 - dy < imgH) {
+          img.setPixelColor(color, x + dx, y + h - 1 - dy);
+        }
+      }
+    }
+    // 左右の線を描画
+    for (let dx = 0; dx < thickness; dx++) {
+      for (let dy = 0; dy < h; dy++) {
+        if (x + dx < imgW && y + dy < imgH) {
+          img.setPixelColor(color, x + dx, y + dy);
+        }
+        if (x + w - 1 - dx < imgW && y + dy < imgH) {
+          img.setPixelColor(color, x + w - 1 - dx, y + dy);
+        }
+      }
+    }
+
+    return img.getBufferAsync(Jimp.MIME_JPEG);
   }
 
 // ストリーミングされた映像からフレームを抽出し、Rekognition によるクマ検出を行う Lambda
@@ -256,6 +298,26 @@ exports.handler = async (event) => {
       const firstInstance = (topKuma.Instances || [])[0];
       const bbox = firstInstance ? firstInstance.BoundingBox : null;
 
+      // BBOX 付きクマフレームを S3 に保存（bbox がある場合だけ）
+      let annotatedKey = null;
+      if (bbox) {
+        const annotatedBuf = await drawBBoxJpeg(imageBytes, bbox);
+        // アノテーション付きフレームを S3 に保存する
+        annotatedKey =
+          `kuma-detections/${CAMERA_ID}/${date}/${hhmm}/frame-${frameNo}-${tsSafe}-bbox.jpg`;
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: DETECTION_BUCKET,
+            Key: annotatedKey,
+            Body: annotatedBuf,
+            ContentType: 'image/jpeg',
+          }),
+        );
+        console.log('Saved BBOX detection frame to S3:', annotatedKey);
+      } else {
+        console.log('No Instances/BoundingBox found for topKuma, skip annotated image.');
+      }
+
       // ########## クマ検出結果を Kinesis Data Streams に送信する ##########
 
       // Kinesis Data Streams に送信するペイロードの作成
@@ -269,6 +331,7 @@ exports.handler = async (event) => {
         rawLabelName: topKuma.Name,           // ラベルの Name
         s3Bucket: DETECTION_BUCKET,           // フレーム格納用バケット名
         s3Key: objectKey,                     // オブジェクトキー
+        s3KeyBbox: annotatedKey,              // BBOX 付きキー
         boundingBox: bbox,                    // { Width, Height, Left, Top } (0〜1 の割合)
       };
 
