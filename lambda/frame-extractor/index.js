@@ -76,7 +76,7 @@ const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test に�
 
     // 枠の太さ（画像サイズに応じて調整、2px〜くらい）
     const thickness = Math.max(2, Math.round(Math.min(imgW, imgH) * 0.01));
-    const color = Jimp.rgbaToInt(0, 255, 0, 255); // 枠の色（RGB）
+    const color = Jimp.cssColorToHex('#00FF00'); // 緑
 
     // 上下の線を描画
     for (let dy = 0; dy < thickness; dy++) {
