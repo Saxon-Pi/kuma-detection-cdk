@@ -3,7 +3,9 @@ const { KinesisVideoArchivedMediaClient, GetImagesCommand } = require('@aws-sdk/
 const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { KinesisClient, PutRecordCommand } = require('@aws-sdk/client-kinesis');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const Jimp = require('jimp');
+const JimpModule = require('jimp');
+
+const Jimp = JimpModule.Jimp || JimpModule;
 
 const kvsClient = new KinesisVideoClient({}); // Kinesis Video Streams クライアント
 const rekClient = new RekognitionClient({});  // Rekognition クライアント
@@ -178,6 +180,12 @@ exports.handler = async (event) => {
     // Lambda実行時間の取得（フレーム保存 prefix で使用）
     const { date, hhmm } = nowJstIso();
     let frameIndex = 0;
+
+    // 取得フレームの枚数チェック（デバッグ用）
+    console.log('Extracted images count:', images.length);
+    images.forEach((img, i) => {
+      console.log(`Image[${i}] ts=${img.Timestamp}`); // フレーム取得時間
+    });
 
     // KVS から取得した全てのフレームを Rekognition に判定させる
     for (const img of images) {

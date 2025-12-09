@@ -146,6 +146,7 @@ Rekognition video でクマさんを検出するのは厳しそう…
     cd /Users/<UserName>/amazon-kinesis-video-streams-producer-sdk-cpp/build
 
     export AWS_PROFILE=<your_profile>
+    export AWS_REGION=ap-northeast-1
     export AWS_DEFAULT_REGION=ap-northeast-1
 
     ./kvs_gstreamer_sample <your_stream_name> /Users/<UserName>/path/to/kuma-san.mp4
