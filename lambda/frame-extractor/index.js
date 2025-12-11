@@ -3,9 +3,7 @@ const { KinesisVideoArchivedMediaClient, GetImagesCommand } = require('@aws-sdk/
 const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { KinesisClient, PutRecordCommand } = require('@aws-sdk/client-kinesis');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const JimpModule = require('jimp');
-
-const Jimp = JimpModule.Jimp || JimpModule;
+const Jimp = require('jimp');
 
 const kvsClient = new KinesisVideoClient({}); // Kinesis Video Streams クライアント
 const rekClient = new RekognitionClient({});  // Rekognition クライアント
@@ -76,7 +74,7 @@ const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test に�
 
     // 枠の太さ（画像サイズに応じて調整、2px〜くらい）
     const thickness = Math.max(2, Math.round(Math.min(imgW, imgH) * 0.01));
-    const color = Jimp.cssColorToHex('#00FF00'); // 緑
+    const color = Jimp.rgbaToInt(0, 255, 0, 255); // 緑枠
 
     // 上下の線を描画
     for (let dy = 0; dy < thickness; dy++) {
