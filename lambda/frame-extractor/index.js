@@ -4,27 +4,6 @@ const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-reko
 const { KinesisClient, PutRecordCommand } = require('@aws-sdk/client-kinesis');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
-// Jimp は ESM ライブラリなので、動的 import でロードする
-let JimpModule = null;
-async function getJimp() {
-  if (!JimpModule) {
-    const mod = await import('jimp');
-    // default / named / 直 export のどれでも対応できるようにしておく
-    const Jimp = mod.Jimp || mod.default || mod;
-    JimpModule = { Jimp };
-  }
-  return JimpModule;
-}
-
-// Jimp に依存しない自前の RGBA -> int 変換
-function rgbaToInt(r, g, b, a = 255) {
-  // Jimp のフォーマット (RGBA 想定)
-  return ((a & 0xff) << 24) |
-         ((r & 0xff) << 16) |
-         ((g & 0xff) << 8)  |
-          (b & 0xff);
-}
-
 const kvsClient = new KinesisVideoClient({}); // Kinesis Video Streams クライアント
 const rekClient = new RekognitionClient({});  // Rekognition クライアント
 const kdsClient = new KinesisClient({});      // Kinesis Data Streams クライアント
@@ -36,6 +15,27 @@ const MIN_CONFIDENCE = Number(process.env.MIN_CONFIDENCE || '50');  // Rekogniti
 const CAMERA_ID = process.env.CAMERA_ID || 'cam-unknown';           // カメラID
 const DETECTION_BUCKET = process.env.DETECTION_BUCKET;              // フレーム格納用バケット名
 const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test にすると取得フレーム周期を増加
+
+// TypeError: Jimp.read is not a function 対策
+// require('jimp') だとエラーになるので import('jimp') にする
+let JimpModule = null;
+async function getJimp() {
+  if (!JimpModule) {
+    const mod = await import('jimp');
+    // default / named / 直 export のすべてに対応
+    const Jimp = mod.Jimp || mod.default || mod;
+    JimpModule = { Jimp };
+  }
+  return JimpModule;
+}
+// Jimp に依存しない自前の RGBA -> int 変換
+function rgbaToInt(r, g, b, a = 255) {
+  // Jimp のフォーマット (RGBA 想定)
+  return ((a & 0xff) << 24) |
+         ((r & 0xff) << 16) |
+         ((g & 0xff) << 8)  |
+          (b & 0xff);
+}
 
 // TODO: KVS -> Rekognition のフレーム取得 & 検出デバッグ
 //       DynamoDB登録 -> SNS メール通知のデバッグ（DDB Streams が怪しい）
