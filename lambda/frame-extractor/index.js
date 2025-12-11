@@ -30,11 +30,13 @@ async function getJimp() {
 }
 // Jimp に依存しない自前の RGBA -> int 変換
 function rgbaToInt(r, g, b, a = 255) {
-  // Jimp のフォーマット (RGBA 想定)
-  return ((a & 0xff) << 24) |
-         ((r & 0xff) << 16) |
-         ((g & 0xff) << 8)  |
-          (b & 0xff);
+  // Jimp のフォーマットに変換 (RGBA 想定)
+  return (
+    ((a & 0xff) << 24) |
+    ((r & 0xff) << 16) |
+    ((g & 0xff) << 8)  |
+    (b & 0xff)
+  ) >>> 0; // unsigned 32bit にする
 }
 
 // TODO: KVS -> Rekognition のフレーム取得 & 検出デバッグ
