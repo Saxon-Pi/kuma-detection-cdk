@@ -3,7 +3,27 @@ const { KinesisVideoArchivedMediaClient, GetImagesCommand } = require('@aws-sdk/
 const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { KinesisClient, PutRecordCommand } = require('@aws-sdk/client-kinesis');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-const Jimp = require('jimp');
+
+// Jimp は ESM ライブラリなので、動的 import でロードする
+let JimpModule = null;
+async function getJimp() {
+  if (!JimpModule) {
+    const mod = await import('jimp');
+    // default / named / 直 export のどれでも対応できるようにしておく
+    const Jimp = mod.Jimp || mod.default || mod;
+    JimpModule = { Jimp };
+  }
+  return JimpModule;
+}
+
+// Jimp に依存しない自前の RGBA -> int 変換
+function rgbaToInt(r, g, b, a = 255) {
+  // Jimp のフォーマット (RGBA 想定)
+  return ((a & 0xff) << 24) |
+         ((r & 0xff) << 16) |
+         ((g & 0xff) << 8)  |
+          (b & 0xff);
+}
 
 const kvsClient = new KinesisVideoClient({}); // Kinesis Video Streams クライアント
 const rekClient = new RekognitionClient({});  // Rekognition クライアント
@@ -62,6 +82,9 @@ const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test に�
 
   // Rekognition で検出した Kuma-BoundingBox を元に、フレームに BBOX を描画する（JPEG Buffer）
   async function drawBBoxJpeg(imageBytes, bbox) {
+    // Jimp を動的 import
+    const { Jimp } = await getJimp();
+
     // bbox: { Left, Top, Width, Height } （すべて 0〜1 の割合）
     const img = await Jimp.read(imageBytes); // 画像読み込み
     const imgH = img.bitmap.height;          // タテ画素数
@@ -74,7 +97,7 @@ const FRAME_MODE = process.env.FRAME_MODE || 'prod';                // test に�
 
     // 枠の太さ（画像サイズに応じて調整、2px〜くらい）
     const thickness = Math.max(2, Math.round(Math.min(imgW, imgH) * 0.01));
-    const color = Jimp.rgbaToInt(0, 255, 0, 255); // 緑枠
+    const color = rgbaToInt(0, 255, 0, 255); // 緑枠
 
     // 上下の線を描画
     for (let dy = 0; dy < thickness; dy++) {
