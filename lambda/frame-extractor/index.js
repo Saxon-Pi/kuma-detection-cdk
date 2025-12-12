@@ -124,7 +124,7 @@ function rgbaToInt(r, g, b, a = 255) {
       }
     }
 
-    return img.getBuffer(Jimp.MIME_JPEG);
+    return img.getBuffer('image/jpeg');
   }
 
 // ストリーミングされた映像からフレームを抽出し、Rekognition によるクマ検出を行う Lambda
