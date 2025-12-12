@@ -24,7 +24,9 @@ async function getJimp() {
     const mod = await import('jimp');
     // default / named / 直 export のすべてに対応
     const Jimp = mod.Jimp || mod.default || mod;
-    JimpModule = { Jimp };
+    // Jimp 純正の rgbaToInt 関数を使用する
+    const rgbaToIntFn = mod.rgbaToInt || Jimp.rgbaToInt;
+    JimpModule = { Jimp, rgbaToIntFn };
   }
   return JimpModule;
 }
@@ -85,7 +87,7 @@ function rgbaToInt(r, g, b, a = 255) {
   // Rekognition で検出した Kuma-BoundingBox を元に、フレームに BBOX を描画する（JPEG Buffer）
   async function drawBBoxJpeg(imageBytes, bbox) {
     // Jimp を動的 import
-    const { Jimp } = await getJimp();
+    const { Jimp, rgbaToIntFn } = await getJimp();
 
     // bbox: { Left, Top, Width, Height } （すべて 0〜1 の割合）
     const img = await Jimp.read(imageBytes); // 画像読み込み
@@ -98,8 +100,8 @@ function rgbaToInt(r, g, b, a = 255) {
     const h = Math.round(bbox.Height * imgH);
 
     // 枠の太さ（画像サイズに応じて調整、2px〜くらい）
-    const thickness = Math.max(2, Math.round(Math.min(imgW, imgH) * 0.01));
-    const color = rgbaToInt(0, 255, 0, 255); // 緑枠
+    const thickness = Math.min(3, Math.max(1, Math.round(Math.min(imgW, imgH) * 0.003)));
+    const color = rgbaToIntFn ? rgbaToIntFn(0, 255, 0, 255) : 0xff00ff00;
 
     // 上下の線を描画
     for (let dy = 0; dy < thickness; dy++) {
