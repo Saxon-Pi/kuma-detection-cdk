@@ -86,7 +86,8 @@ export class KumaDetectionCdkStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('lambda/frame-extractor'),
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.minutes(15),
+      memorySize: 1024,
       environment: {
         VIDEO_STREAM_ARN: videoStream.attrArn,              // Kinesis Video Streams ARN
         DETECTION_STREAM_NAME: detectionStream.streamName,  // Kinesis Data Streams streamName
