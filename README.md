@@ -8,7 +8,7 @@ AI によるクマ検出、検出フレームの保存、Bounding Box 付き画�
 ---
 
 - [デモンストレーション](#デモンストレーション)
-- [システム概要](#システム概要)
+- [システム概要](#システム概要-1)
 - [主な機能](#主な機能)
 - [システムアーキテクチャ](#システムアーキテクチャ)
 - [技術的な工夫ポイント](#技術的な工夫ポイント)
@@ -19,58 +19,31 @@ AI によるクマ検出、検出フレームの保存、Bounding Box 付き画�
 
 # デモンストレーション
 
-## 1. クマ検出・Bounding Box 画像生成機能
+## クマ検出アラート通知機能
 
+### システム概要
 Kinesis Video Streams に送信された監視カメラ映像からフレームを抽出し、  
 Amazon Rekognition によりクマを検出する  
 
-クマを検出した場合、検出フレームと Bounding Box 付き画像を S3 に保存する  
+クマを検出した場合、以下の処理を自動実行する  
 
+- 検出フレームを S3 に保存
+- Bounding Box 付き画像を生成
+- 検出結果を DynamoDB に保存
+- 検出情報と画像を含むメールを送信
+
+### Bounding Box 付き検出画像
 <p align="center">
-  <img src="./docs/img/readme/kuma-detection-bbox-1.jpg" alt="クマ検出BBOX画像1" width="900">
+  <img src="./docs/img/readme/kuma-detection-bbox-1.jpg" alt="クマ検出BBOX画像" width="900">
 </p>
 
----
-
-## 2. 検出結果の保存機能
-
-クマ検出時には、検出結果を DynamoDB に保存する  
-
-保存される主な情報は以下となる  
-
-- cameraId
-- detectedAt
-- species
-- confidence
-- kumaCount
-- s3Key
-- s3KeyBbox
-- boundingBox
-
-DynamoDB 登録例:  
-
-```json
-{
-  "cameraId": "cam-01",
-  "detectedAt": "2026-05-20T17:37:09.099+09:00",
-  "species": "kuma",
-  "confidence": 99.95014953613281,
-  "kumaCount": 1
-}
+### メール通知
+<p align="center">
+  <img src="./docs/img/readme/kuma-detection-alert-mail.png" alt="クマ検出メール通知" width="700">
+</p>
 ```
 
-## 3. SNS メール通知機能
-
-DynamoDB に検出結果が登録されると、SNS 経由でメール通知を行う
-
-通知メール例:
-```
-ʕ•ᴥ•ʔ Kuma san ni deatta!!! ʕ•ᴥ•ʔ
-
-(ᵔᴥᵔ) Kuma detected (ᵔᴥᵔ) on camera: cam-01, at: 2026-05-20T17:37:09.099+09:00
-```
-
-## 4. Rekognition の判定ログ
+### Rekognition 判定ログ
 
 本システムでは、Amazon Rekognition の DetectLabels API を使用して、
 抽出した各フレームに含まれるラベルを判定している
@@ -94,7 +67,13 @@ DynamoDB に検出結果が登録されると、SNS 経由でメール通知を�
 }
 ```
 
+### CloudWatch Logs
+
 CloudWatch Logs から、フレーム抽出、Rekognition 判定、S3 保存、Kinesis Data Streams 送信までの流れを確認できる
+
+<p align="center">
+  <img src="./docs/img/readme/kuma-detection-log.png" alt="CloudWatch Logs" width="700">
+</p>
 
 # システム概要
 
