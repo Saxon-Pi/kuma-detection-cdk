@@ -172,15 +172,16 @@ export class KumaDetectionCdkStack extends cdk.Stack {
       '/kuma-detection/mail/to',
     );
 
-    // SNS/SES 通知用 Lambda
+    // SNS/SES 通知用 Lambda (通知メールのHTML化により、SNSからSESに変更済)
     // SES の場合は、コンソールから Amazon SES > 設定 > ID > IDの作成 でメールアドレス登録が必要
     const notifierFunction = new lambda.Function(this, 'kumaDetectionNotifier', {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('lambda/kuma-notifier'), // デプロイ用コードのパス
+      timeout: cdk.Duration.seconds(30),
       environment: {
         TABLE_NAME: props.detectionTable.tableName, // DynamoDB テーブル名
-        TOPIC_ARN: kumaAlertTopic.topicArn,         // SNS トピックARN
+        //TOPIC_ARN: kumaAlertTopic.topicArn,       // SNS トピックARN
         MAIL_FROM: mailFrom,                        // SES メール送信元
         MAIL_TO: mailTo,                            // SES メール送信先
         PRESIGNED_URL_EXPIRES_SECONDS: '86400',     // 署名付きURL 有効時間
@@ -199,7 +200,7 @@ export class KumaDetectionCdkStack extends cdk.Stack {
     // Lambda DB Streams 読み取り権限
     props.detectionTable.grantStreamRead(notifierFunction);
     // SNS publish 権限
-    kumaAlertTopic.grantPublish(notifierFunction);
+    //kumaAlertTopic.grantPublish(notifierFunction);
     // S3 バケットアクセス権限
     detectionBucket.grantRead(notifierFunction);
     // SES 送信権限
