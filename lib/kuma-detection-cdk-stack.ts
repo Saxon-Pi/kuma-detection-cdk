@@ -173,6 +173,7 @@ export class KumaDetectionCdkStack extends cdk.Stack {
     );
 
     // SNS/SES 通知用 Lambda
+    // SES の場合は、コンソールから Amazon SES > 設定 > ID > IDの作成 でメールアドレス登録が必要
     const notifierFunction = new lambda.Function(this, 'kumaDetectionNotifier', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',

@@ -61,6 +61,21 @@ exports.handler = async (event) => {
         kumaCount: data.kumaCount != null              // くまカウント
           ? { N: String(data.kumaCount) }              //（データが存在するとき N: 数値）
           : { NULL: true },                            //（データが存在しないとき Null）
+
+        // メールのレイアウト変更により以下の情報を追加
+        rawLabelName: { S: data.rawLabelName || '' },
+        s3Bucket: { S: data.s3Bucket || '' },
+        s3Key: { S: data.s3Key || '' },
+        s3KeyBbox: { S: data.s3KeyBbox || '' },
+
+        boundingBox: {
+          M: {
+            Height: { N: String(data.boundingBox?.Height ?? 0) },
+            Left: { N: String(data.boundingBox?.Left ?? 0) },
+            Top: { N: String(data.boundingBox?.Top ?? 0) },
+            Width: { N: String(data.boundingBox?.Width ?? 0) },
+          },
+        },
       };
 
       // PutItem 実行
