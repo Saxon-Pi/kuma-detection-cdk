@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="YQaAhTd0zbQwR4nGbmBx-57" parent="1" style="fillColor=#F8F8FF;strokeColor=#5A6C86;dashed=1;verticalAlign=top;fontStyle=0;fontColor=#5A6C86;whiteSpace=wrap;html=1;align=left;" value="&lt;font color=&quot;#000000&quot;&gt;&lt;span style=&quot;font-size: 16px;&quot;&gt;&lt;b&gt;&amp;nbsp; &lt;/b&gt;&lt;/span&gt;&lt;/font&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;span style=&quot;font-size: 16px;&quot;&gt;&lt;b&gt;Detection Event Streaming Layer&lt;/b&gt;&lt;/span&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="610" width="420" x="830" y="40" as="geometry" />
+          <mxGeometry height="610" width="420" x="820" y="40" as="geometry" />
         </mxCell>
         <mxCell id="YQaAhTd0zbQwR4nGbmBx-56" parent="1" style="fillColor=#FFF8EF;strokeColor=#5A6C86;dashed=1;verticalAlign=top;fontStyle=0;fontColor=#5A6C86;whiteSpace=wrap;html=1;align=left;" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-weight: 700;&quot;&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;&amp;nbsp; AI Detection Processing Layer&lt;/font&gt;&lt;/span&gt;" vertex="1">
           <mxGeometry height="430" width="550" x="260" y="40" as="geometry" />
@@ -17,7 +17,7 @@
           <mxGeometry height="430" width="210" x="10" y="40" as="geometry" />
         </mxCell>
         <mxCell id="note1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DFFAFB;strokeColor=#0e8088;fontSize=12;align=center;arcSize=8;shadow=1;" value="&lt;font style=&quot;color: rgb(25, 25, 25);&quot;&gt;&lt;b&gt;Detection Payload&lt;/b&gt;&lt;br&gt;cameraId / detectedAt / confidence / rawLabelName&lt;br&gt;s3Bucket / s3Key / s3KeyBbox / boundingBox&lt;/font&gt;" vertex="1">
-          <mxGeometry height="80" width="360" x="865" y="88" as="geometry" />
+          <mxGeometry height="80" width="360" x="855" y="88" as="geometry" />
         </mxCell>
         <mxCell id="I2riI0YlYlpKTw-VuplX-2" parent="1" style="fontColor=#000000;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.security_camera;fontSize=14;fontStyle=1;textShadow=0;shadow=1;labelBackgroundColor=default;" value="&lt;span style=&quot;white-space: normal;&quot;&gt;&lt;font&gt;Camera&lt;/font&gt;&lt;/span&gt;" vertex="1">
           <mxGeometry height="75" width="100" x="60.76" y="128.75" as="geometry" />
@@ -29,7 +29,7 @@
           <mxGeometry height="78" width="78" x="700" y="90" as="geometry" />
         </mxCell>
         <mxCell id="3" parent="1" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;fontSize=12;fontStyle=0;container=0;pointerEvents=0;collapsible=0;recursiveResize=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=#004C99;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;strokeWidth=2;whiteSpace=wrap;shadow=1;" value="&lt;font style=&quot;color: rgb(25, 25, 25);&quot;&gt;AWS Cloud&lt;/font&gt;" vertex="1">
-          <mxGeometry height="660" width="1030" x="240" y="10" as="geometry" />
+          <mxGeometry height="660" width="1020" x="240" y="10" as="geometry" />
         </mxCell>
         <mxCell id="6" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#000000;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_video_streams;textShadow=0;shadow=1;labelBackgroundColor=default;" value="&lt;span style=&quot;text-wrap: wrap;&quot;&gt;&amp;nbsp;Kinesis&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;white-space: normal; text-wrap-style: initial;&quot;&gt;Video&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;white-space: normal;&quot;&gt;Streams&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;white-space: normal;&quot;&gt;(動画ストリーミング)&lt;/span&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="78" width="78" x="304" y="190" as="geometry" />
@@ -69,14 +69,14 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="14" edge="1" parent="1" source="8" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="15" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;PutRecord&lt;/font&gt;&lt;/span&gt;">
-          <mxGeometry relative="1" x="0.3789" y="19" as="geometry">
+          <mxGeometry relative="1" x="0.6154" y="19" as="geometry">
             <mxPoint as="offset" />
             <mxPoint x="597" y="268" as="sourcePoint" />
             <mxPoint x="803" y="323" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="15" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#000000;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.kinesis_data_streams;textShadow=0;shadow=1;labelBackgroundColor=default;" value="Kinesis Data Streams&lt;div&gt;(クマ情報ストリーミング)&lt;/div&gt;" vertex="1">
-          <mxGeometry height="78" width="78" x="900" y="190" as="geometry" />
+          <mxGeometry height="78" width="78" x="890" y="190" as="geometry" />
         </mxCell>
         <mxCell id="17" edge="1" parent="1" source="6" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitPerimeter=0;" target="8" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;GetImages&lt;/font&gt;&lt;/span&gt;">
           <mxGeometry relative="1" x="-0.0362" y="19" as="geometry">
@@ -93,51 +93,51 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="19" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#000000;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;shadow=1;textShadow=0;labelBackgroundColor=default;" value="Lambda&lt;div&gt;(DynamoDB登録)&lt;/div&gt;" vertex="1">
-          <mxGeometry height="78" width="78" x="1100" y="190" as="geometry" />
+          <mxGeometry height="78" width="78" x="1090" y="190" as="geometry" />
         </mxCell>
         <mxCell id="20" edge="1" parent="1" source="15" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="19" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;Trigger&lt;/font&gt;&lt;/span&gt;">
           <mxGeometry relative="1" x="0.0164" y="19" as="geometry">
             <mxPoint as="offset" />
-            <mxPoint x="840" y="310.47" as="sourcePoint" />
-            <mxPoint x="1156" y="310.47" as="targetPoint" />
+            <mxPoint x="830" y="310.47" as="sourcePoint" />
+            <mxPoint x="1146" y="310.47" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="21" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#000000;fillColor=#C925D1;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;textShadow=0;shadow=1;labelBackgroundColor=default;" value="DynamoDB&lt;div&gt;(クマ情報DB)&lt;/div&gt;" vertex="1">
-          <mxGeometry height="78" width="78" x="1100" y="520" as="geometry" />
+          <mxGeometry height="78" width="78" x="1090" y="520" as="geometry" />
         </mxCell>
         <mxCell id="22" edge="1" parent="1" source="19" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="21" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;PutItem&lt;/font&gt;&lt;/span&gt;">
           <mxGeometry relative="1" x="0.005" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
-              <mxPoint x="1220" y="229" />
-              <mxPoint x="1220" y="559" />
+              <mxPoint x="1210" y="229" />
+              <mxPoint x="1210" y="559" />
             </Array>
-            <mxPoint x="869" y="330" as="sourcePoint" />
-            <mxPoint x="1111" y="330" as="targetPoint" />
+            <mxPoint x="859" y="330" as="sourcePoint" />
+            <mxPoint x="1101" y="330" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="23" parent="1" style="sketch=0;outlineConnect=0;fontColor=#000000;gradientColor=none;fillColor=#C925D1;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=1;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.dynamodb_stream;textShadow=0;shadow=1;labelBackgroundColor=default;" value="&lt;span style=&quot;text-wrap: wrap;&quot;&gt;DynamoDB Streams&lt;/span&gt;" vertex="1">
-          <mxGeometry height="78" width="78" x="900" y="520" as="geometry" />
+          <mxGeometry height="78" width="78" x="890" y="520" as="geometry" />
         </mxCell>
         <mxCell id="24" edge="1" parent="1" source="21" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" target="23" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;INSERT&lt;/font&gt;&lt;/span&gt;">
           <mxGeometry relative="1" x="-0.0017" y="-19" as="geometry">
             <mxPoint as="offset" />
-            <mxPoint x="970" y="550" as="sourcePoint" />
-            <mxPoint x="1212" y="550" as="targetPoint" />
+            <mxPoint x="960" y="550" as="sourcePoint" />
+            <mxPoint x="1202" y="550" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="25" parent="1" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#000000;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=14;fontStyle=1;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;shadow=1;textShadow=0;labelBackgroundColor=default;" value="Lambda&lt;div&gt;(クマ警報メール作成)&lt;/div&gt;" vertex="1">
           <mxGeometry height="78" width="78" x="700" y="520" as="geometry" />
         </mxCell>
         <mxCell id="26" edge="1" parent="1" source="23" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="25" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;Trigger&lt;/font&gt;&lt;/span&gt;">
-          <mxGeometry relative="1" x="-0.0164" y="-19" as="geometry">
+          <mxGeometry relative="1" x="0.0714" y="-19" as="geometry">
             <mxPoint as="offset" />
             <mxPoint x="950" y="590" as="sourcePoint" />
             <mxPoint x="1192" y="590" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="28" edge="1" parent="1" source="25" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;exitPerimeter=0;" target="10" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;GetObject&lt;/font&gt;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;color: rgb(63, 63, 63);&quot;&gt;(Presigned URL)&lt;/font&gt;&lt;/span&gt;&lt;/div&gt;">
-          <mxGeometry relative="1" x="-0.3146" y="-20" as="geometry">
+          <mxGeometry relative="1" x="-0.252" y="-20" as="geometry">
             <mxPoint as="offset" />
             <Array as="points">
               <mxPoint x="620" y="540" />
@@ -165,7 +165,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="38" parent="1" style="dashed=0;outlineConnect=0;html=1;align=center;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.weblogos.json;shadow=1;" value="" vertex="1">
-          <mxGeometry height="45.8" width="42.3" x="855" y="88" as="geometry" />
+          <mxGeometry height="45.8" width="42.3" x="845" y="88" as="geometry" />
         </mxCell>
         <mxCell id="5" edge="1" parent="1" source="I2riI0YlYlpKTw-VuplX-4" style="endArrow=block;html=1;rounded=1;strokeWidth=2;strokeColor=#666666;fontSize=12;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="6" value="&lt;font style=&quot;font-size: 14px; color: rgb(63, 63, 63);&quot;&gt;Streaming&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 14px; color: rgb(63, 63, 63);&quot;&gt;Media&lt;/font&gt;&lt;/div&gt;">
           <mxGeometry relative="1" x="0.4885" y="29" as="geometry">
@@ -200,7 +200,7 @@
           <mxGeometry height="10" width="910" x="220" y="680" as="geometry" />
         </mxCell>
         <mxCell id="YQaAhTd0zbQwR4nGbmBx-54" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FFFFFF;fontSize=26;fontStyle=1;align=center;verticalAlign=middle;spacing=8;" value="" vertex="1">
-          <mxGeometry height="610" width="10" x="1280" y="40" as="geometry" />
+          <mxGeometry height="610" width="10" x="1270" y="40" as="geometry" />
         </mxCell>
         <mxCell id="YQaAhTd0zbQwR4nGbmBx-55" parent="1" style="text;html=1;strokeColor=none;fillColor=none;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;" value="&lt;font style=&quot;font-size: 26px;&quot;&gt;Kuma Detection System Architecture&lt;/font&gt;" vertex="1">
           <mxGeometry height="45" width="1260" x="10" y="-35" as="geometry" />
