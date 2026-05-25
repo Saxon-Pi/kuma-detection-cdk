@@ -1,27 +1,29 @@
 <!-- omit in toc -->
 # Kuma Detection System on AWS
 
-本システムは、監視カメラ映像を AWS 上で解析し、  
-AI によるクマ検出、検出フレームの保存、Bounding Box 付き画像の生成、メール通知を行う  
+本システムは、--監視カメラ映像を AWS 上で解析-- し、  
+AI による --クマ検出、Bounding Box 付き画像生成、検出イベント保存、HTML メール通知-- を行う  
 サーバレスなクマ検出システムである  
+
+Kinesis Video Streams を用いた映像ストリーミング基盤と、  
+Amazon Rekognition による画像認識を組み合わせ、  
+--「クマが映った瞬間のみイベントを発火する」-- リアルタイム監視システムを構築している  
 
 ---
 
 - [デモンストレーション](#デモンストレーション)
-- [システム概要](#システム概要-1)
+- [システム概要](#システム概要)
 - [主な機能](#主な機能)
 - [システムアーキテクチャ](#システムアーキテクチャ)
 - [技術的な工夫ポイント](#技術的な工夫ポイント)
 - [今後の改善ポイント](#今後の改善ポイント)
 
-
 ---
 
 # デモンストレーション
 
-## クマ検出アラート通知機能
+## クマ検出アラート通知
 
-### システム概要
 Kinesis Video Streams に送信された監視カメラ映像からフレームを抽出し、  
 Amazon Rekognition によりクマを検出する  
 
@@ -29,24 +31,41 @@ Amazon Rekognition によりクマを検出する
 
 - 検出フレームを S3 に保存
 - Bounding Box 付き画像を生成
-- 検出結果を DynamoDB に保存
-- 検出情報と画像を含むメールを送信
+- 検出イベントを Kinesis Data Streams に送信
+- DynamoDB に検出履歴を保存
+- SES により HTML メール通知を送信
 
 ### Bounding Box 付き検出画像
 <p align="center">
-  <img src="./docs/img/readme/kuma-detection-bbox-1.jpg" alt="クマ検出BBOX画像" width="900">
+  <img src="./docs/images/kuma-detection-bbox-1.jpg" alt="クマ検出BBOX画像" width="900">
 </p>
 
-### メール通知
+Bounding Box を描画することで、  
+Rekognition が画像内のどの領域をクマとして判定したかを視覚的に確認できる  
+
+### HTML メール通知
 <p align="center">
-  <img src="./docs/img/readme/kuma-detection-alert-mail.png" alt="クマ検出メール通知" width="700">
+  <img src="./docs/images/kuma-detection-alert-mail.png" alt="クマ検出メール通知" width="700">
 </p>
-```
+
+通知メールには以下の情報を含めている  
+
+- Camera ID
+- 検出時刻（JST）
+- Rekognition Label
+- Confidence
+- クマ検出数
+- Bounding Box 情報
+- Bounding Box 付き検出画像
+- S3 保存先
+
+単なる通知ではなく、  
+--「クマ検出レポート」として状況を即時把握できる UI-- を意識している  
 
 ### Rekognition 判定ログ
 
-本システムでは、Amazon Rekognition の DetectLabels API を使用して、
-抽出した各フレームに含まれるラベルを判定している
+本システムでは、Amazon Rekognition DetectLabels API を使用し、  
+各フレームに含まれるオブジェクトラベルを判定している  
 
 クマ検出時には、以下のように Bear ラベルと Bounding Box が返却される
 ```json
@@ -69,159 +88,195 @@ Amazon Rekognition によりクマを検出する
 
 ### CloudWatch Logs
 
-CloudWatch Logs から、フレーム抽出、Rekognition 判定、S3 保存、Kinesis Data Streams 送信までの流れを確認できる
+CloudWatch Logs から、  
+--フレーム抽出 → Rekognition 判定 → S3 保存 → Kinesis Data Streams 送信 → SES 通知--  
+までの一連の処理を確認できる  
 
 <p align="center">
-  <img src="./docs/img/readme/kuma-detection-log.png" alt="CloudWatch Logs" width="700">
+  <img src="./docs/images/kuma-detection-log.png" alt="CloudWatch Logs" width="700">
 </p>
 
 # システム概要
 
-近年、住宅地や農地周辺における野生動物の出没が問題となっている
-特にクマの出没は、人身被害や農作物被害につながる可能性があり、早期検知が重要となる
+近年、住宅地や農地周辺における野生動物の出没が問題となっている  
+特にクマの出没は、人身被害や農作物被害につながる可能性があり、--早期検知が重要-- となる  
 
-本システムでは、監視カメラ映像を AWS に取り込み、
-AI 画像認識によってクマを検出し、検出結果を保存・通知することで、
-野生動物の早期発見や監視業務の効率化を目的としている
+本システムでは、監視カメラ映像を AWS に取り込み、  
+--AI 画像認識によってクマを検出し、検出結果を保存・通知-- することで、  
+野生動物の早期発見や監視業務の効率化を目的としている  
+
+また、Kinesis Video Streams を利用した映像ストリーミング処理により、  
+リアルタイム監視システムをサーバレス構成で実現している  
 
 # 主な機能
 
-本システムに搭載されている機能は以下となる
+## 1. 監視カメラ映像の取り込み
 
-1. 監視カメラ映像の取り込み
+GStreamer を使用して、  
+動画ファイルまたはカメラ映像を Kinesis Video Streams に送信する  
 
-GStreamer を使用して、動画ファイルまたはカメラ映像を Kinesis Video Streams に送信する
+テストでは、クマ出現シーンを含む動画を KVS に送信し、  
+--実際の監視カメラ運用を想定した検証-- を行っている  
 
-テストでは、クマが映った動画ファイルを KVS に送信し、
-実運用に近い監視カメラ映像を想定した検証を行っている
+## 2. フレーム抽出
 
-2. フレーム抽出
+EventBridge により Lambda を定期実行し、  
+Kinesis Video Streams の直近映像からフレームを抽出する  
 
-EventBridge により Lambda を定期実行し、
-Kinesis Video Streams の直近映像からフレームを抽出する
+取得したフレームは S3 に保存し、Rekognition の判定対象とする  
 
-取得したフレームは S3 に保存し、Rekognition の判定対象とする
+## 3. AI によるクマ検出
 
-3. AI によるクマ検出
+Amazon Rekognition DetectLabels API を使用し、  
+フレーム内に --Bear / Black Bear / Brown Bear-- などのラベルが含まれるかを判定する  
 
-Amazon Rekognition の DetectLabels API を使用して、
-抽出したフレームに Bear / Black Bear / Brown Bear などのラベルが含まれるかを判定する
+検出スコアが閾値を超えた場合、クマ検出イベントとして後続処理を実行する  
 
-検出スコアが閾値を超えた場合、クマ検出イベントとして後続処理を実行する
+## 4. Bounding Box 付き画像生成
 
-4. Bounding Box 付き画像生成
+Rekognition が返却した Bounding Box 情報を基に、  
+--検出フレーム上に枠線を描画した画像を生成する--  
 
-Rekognition が返却した Bounding Box 情報を基に、
-検出フレーム上に枠線を描画した画像を生成する
+これにより、--画像のどの領域をクマとして判定したか-- を視覚的に確認できる
 
-これにより、画像のどの領域をクマとして判定したかを視覚的に確認できる
+## 5. 検出結果の保存・通知
 
-5. 検出結果の保存・通知
+クマを検出した場合、  
+検出イベントを Kinesis Data Streams に送信し、後続 Lambda で DynamoDB に保存する  
 
-クマを検出した場合、検出結果を Kinesis Data Streams に送信し、
-後続 Lambda で DynamoDB に保存する
-
-DynamoDB Streams をトリガーとして SNS メール通知を行う
+DynamoDB Streams をトリガーとして Notifier Lambda を起動し、  
+SES 経由で HTML メール通知を送信する  
 
 # システムアーキテクチャ
 
-## 画像解析アーキテクチャ
+## 全体アーキテクチャ
+
+<p align="center">
+  <img src="./docs/images/kuma-detection-architecture.png" alt="Architecture Diagram" width="1200">
+</p>
+
+本システムは、  
+Kinesis Video Streams を中心としたストリーミング処理基盤と、  
+Lambda によるイベント駆動処理を組み合わせた --サーバレスアーキテクチャ-- として構成している  
+
+特に以下の --ストリーム処理を重視-- している
+
+- Kinesis Video Streams による映像ストリーミング
+- Kinesis Data Streams による検出イベント連携
+- DynamoDB Streams による通知トリガー
 
 ### Kinesis Video Streams による映像取り込み
 
-本システムでは、監視カメラ映像の取り込み先として Kinesis Video Streams を使用している
+KVS を使用することで、以下のようなメリットがある  
 
-KVS を使用することで、以下のようなメリットがある
-
-- 映像データをストリームとして AWS 上に取り込める
-- Lambda から直近の映像フレームを取得できる
-- 実カメラ映像への拡張がしやすい
+- 映像データをリアルタイムに AWS へ送信できる
+- Lambda から直近フレームを取得できる
+- 実カメラ映像への拡張が容易
 - サーバレス構成と組み合わせやすい
 
 ⸻
 
 ### EventBridge + Lambda による定期フレーム抽出
 
-EventBridge で Lambda を定期実行し、
-Kinesis Video Streams の直近一定期間の映像からフレームを取得する
+EventBridge により Lambda を定期実行し、  
+KVS の直近映像から一定間隔でフレームを取得する  
 
-テスト時は多めにフレームを取得し、本番時は取得枚数を抑えることで、
-検出精度とコストのバランスを調整できる構成としている
+検証時は多めにフレームを取得し、  
+本番時は取得頻度を抑えることでコスト最適化できる構成としている  
 
 | モード | SamplingInterval | MaxResults | 用途 |
 | --- | --- | --- | --- |
 | test | 2000ms | 30 | 検証用 |
 | prod | 5000ms | 12 | 本番想定 |
 
-### Rekognition によるラベル検出
+## 検出タイムライン
 
-抽出した各フレームを Amazon Rekognition に渡し、
-画像内に含まれるオブジェクトのラベルを検出する
+### ストリーミング検出イメージ
 
-クマ判定では、ラベル名に bear を含むものを抽出している
+<p align="center">
+  <img src="./docs/images/kuma-detection-flow.png" alt="Detection Timeline" width="1200">
+</p>
 
-対象例:
+本システムでは、  
+--「クマが映った瞬間のみ検出イベントが発火する」-- ストリーミング監視システムを想定している
 
-- Bear
-- Black Bear
-- Brown Bear
+テストでは、  
+
+- 通常風景
+- クマ出現シーン
+- 通常風景
+
+を含む動画を Kinesis Video Streams に送信し、  
+クマ出現タイミングでのみ Rekognition 検出・通知処理が実行されることを確認している  
 
 # 技術的な工夫ポイント
 
-1. KVS フレーム取得データの Base64 デコード対応
+## 1. KVS フレーム取得データの Base64 デコード対応
 
-Kinesis Video Streams の GetImages API から取得した ImageContent は、
-Rekognition にそのまま渡すと InvalidImageFormatException が発生した
+Kinesis Video Streams GetImages API の ImageContent は、  
+そのまま Rekognition に渡すと InvalidImageFormatException が発生した  
 
-そのため、ImageContent を Base64 文字列として扱い、
-JPEG バイナリにデコードしてから Rekognition に渡すようにしている
+そのため、ImageContent を Base64 デコードして JPEG バイナリへ変換している  
 
 ```javascript
 const b64 = Buffer.from(img.ImageContent).toString('utf-8');
 const jpegBuf = Buffer.from(b64, 'base64');
 ```
 
-2. 全フレーム判定による検出率向上
+## 2. 全フレーム判定による検出率向上
 
-当初は取得したフレームの先頭1枚のみを Rekognition に渡していたため、
-クマが映っているタイミングを逃す可能性があった
+当初は取得フレームの先頭1枚のみ判定していたため、  
+クマ出現タイミングを逃すケースがあった  
 
-現在は、取得した全フレームをループ処理し、
-各フレームに対して Rekognition 判定を行う構成としている
+現在は取得した全フレームをループ処理し、  
+各フレームに対して Rekognition 判定を行っている  
 
-これにより、短時間だけ映るクマや、小さく映るクマも検出しやすくしている
+これにより、  
+--短時間だけ映るクマや小さく映るクマ-- も検出しやすくしている  
 
-3. Bounding Box の有無を考慮した処理
+## 3. Bounding Box の有無を考慮した処理
 
-Rekognition は Bear ラベルを返しても、
-必ずしも Instances や BoundingBox を返すとは限らない
+Rekognition は Bear ラベルを返しても、必ずしも Bounding Box を返すとは限らない  
 
-そのため、Bounding Box が存在する場合のみアノテーション画像を生成し、
-存在しない場合でも検出結果として DynamoDB に保存するようにしている
+そのため、Bounding Box が存在する場合のみアノテーション画像を生成し、  
+存在しない場合でも検出イベントとして保存するようにしている  
 
 ```javascript
 const firstInstance = (topKuma.Instances || [])[0];
 const bbox = firstInstance ? firstInstance.BoundingBox : null;
 ```
 
-4. Lambda のタイムアウト・メモリ調整
+## 4. SES による HTML メール通知
 
-複数フレームを Rekognition に渡し、さらに Bounding Box 付き画像を生成する場合、
-Lambda の実行時間とメモリ使用量が大きくなる
+Notifier Lambda では SES を使用し、  
+--Bounding Box 画像付き HTML メール-- を送信している  
 
-検証時には Lambda の timeout と memorySize を大きめに設定し、
-複数フレームを安定して処理できるようにしている
+メール本文には以下を含めている  
 
-本番運用では、1回の実行で処理するフレーム数や通知頻度を調整することで、
-コストと性能のバランスを取る想定である
+- 検出画像
+- Confidence
+- Bounding Box 情報
+- Camera ID
+- JST 整形済み検出時刻
+- S3 保存先
 
-5. サーバレスなイベント駆動構成
+これにより、通知メール単体で状況を把握できるようにしている  
 
-本システムは、Kinesis Video Streams、Lambda、Rekognition、S3、DynamoDB、SNS を組み合わせた
-サーバレスなイベント駆動アーキテクチャとして構成している
+## 5. サーバレスなイベント駆動構成
 
-常駐サーバを持たず、映像入力や検出イベントに応じて必要な処理のみ実行されるため、
-小規模な監視システムとして運用しやすい構成となっている
+本システムは、  
+
+- Kinesis Video Streams
+- Lambda
+- Rekognition
+- S3
+- Kinesis Data Streams
+- DynamoDB
+- SES
+
+を組み合わせたサーバレスなイベント駆動構成として設計している  
+
+常駐サーバを持たず、イベント発生時のみ必要な処理を実行する構成となっている  
 
 | 技術 | 用途 | 
 | --- | --- | 
@@ -235,56 +290,50 @@ Lambda の実行時間とメモリ使用量が大きくなる
 | AWS Lambda | フレーム抽出 / DynamoDB 保存 / 通知処理 | 
 | Amazon DynamoDB | 検出結果保存 | 
 | DynamoDB Streams | 検出イベントの通知トリガー | 
-| Amazon SNS | メール通知 | 
+| Amazon SES | HTMLメール通知 | 
 | Amazon EventBridge | 定期実行 | 
 | GStreamer | 映像ストリーミング | 
 | Jimp | Bounding Box 画像生成 | 
 
 # 今後の改善ポイント
 
-現時点でも、KVS に送信した映像からクマを検出し、
-検出画像の保存、DynamoDB 登録、SNS 通知まで一連の処理が動作している
+## 実カメラ映像への対応
 
-より本格的なシステムへ改善するために、以下の方針を検討している
+現在はテスト動画を KVS に送信して検証している  
+今後は Raspberry Pi Camera やネットワークカメラからリアルタイム映像を送信し、  
+実運用に近い構成へ発展させたい  
 
-実カメラ映像への対応
+## 誤検知・未検知への対策
 
-現在はテスト用の動画ファイルを KVS に送信して検証している
-今後は、実際のネットワークカメラや Raspberry Pi カメラから映像を送信し、
-より実運用に近い検証を行う
+Rekognition の汎用モデルでは、暗所映像や小さく映るクマの判定にばらつきがある  
 
-誤検知・未検知への対策
+今後は以下を検討している  
 
-Rekognition の汎用モデルでは、暗所映像や小さく映るクマの判定にばらつきがある
-今後は、以下の方法で検出精度を改善する
+- Confidence 閾値調整
+- 複数フレーム連続検出
+- Rekognition Custom Labels
+- 独自学習済みモデル導入
 
-- Confidence 閾値の調整
-- 複数フレーム連続検出による判定
-- Amazon Rekognition Custom Labels の利用
-- 学習済み物体検出モデルの導入
-
-通知内容の改善
-
-現在の通知は、検出時刻と cameraId を中心とした簡易通知となっている
-今後は、S3 の署名付き URL や BBOX 付き画像へのリンクを通知に含めることで、
-通知メールから検出画像をすぐ確認できるようにする
-
-運用モードの切り替え
+## 運用モード切り替え
 
 現在は検証用に多めのフレームを取得している
-本番運用では、以下のようにモードを切り替えることでコスト最適化を行う
 
-- test: 多めにフレーム取得し、検出精度や挙動を確認
-- prod: フレーム取得間隔を広げ、コストを抑えて運用
+本番運用では、
 
-監視・可観測性の強化
+- test: 多めにフレーム取得
+- prod: コスト重視
 
-CloudWatch Metrics / Logs を活用し、以下の情報を可視化する
+のようにモードを切り替え、
+コスト最適化を行う予定である
+
+## 監視・可観測性の強化
+
+CloudWatch Metrics / Logs を活用し、以下を可視化したい
 
 - Lambda 実行回数
 - Rekognition 実行回数
 - クマ検出件数
-- 通知件数
+- SES 通知件数
 - エラー件数
 - 処理時間
 
