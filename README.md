@@ -50,7 +50,7 @@ Rekognition が画像内のどの領域をクマとして判定したかを視�
 
 ### HTML メール通知
 <p align="center">
-  <img src="./docs/images/kuma-detection-alert-mail.png" alt="クマ検出メール通知" width="700">
+  <img src="./docs/images/kuma-detection-alert-mail.png" alt="クマ検出メール通知" width="1200">
 </p>
 
 通知メールには以下の情報を含めている  
@@ -221,6 +221,8 @@ KVS の直近映像から一定間隔でフレームを取得する
 | test | 2000ms | 30 | 検証用 |
 | prod | 5000ms | 12 | 本番想定 |
 
+---
+
 ### Detection Event Streaming Layer
 
 本システムでは、  
@@ -282,6 +284,8 @@ Kinesis Data Streams を中継することで、
 
 各処理を **疎結合なストリームとして分離** することで、  
 将来的なカメラ増設や通知先追加にも対応しやすい構成としている  
+
+---
 
 ## 2. KVS フレーム取得データの Base64 デコード対応
 
