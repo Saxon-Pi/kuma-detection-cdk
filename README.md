@@ -77,33 +77,25 @@ Rekognition が画像内のどの領域をクマとして判定したかを視�
 クマ検出時には、以下のように Bear ラベルと Bounding Box が返却される
 ```json
 {
+  "Name": "Outdoors",
+  "Confidence": 87.64
+},
+{
   "Name": "Bear",
-  "Confidence": 99.95014953613281,
-  "Instances": [
-    {
-      "BoundingBox": {
-        "Height": 0.37886834144592285,
-        "Left": 0.07720152288675308,
-        "Top": 0.5058383941650391,
-        "Width": 0.2531565725803375
-      },
-      "Confidence": 99.95014953613281
-    }
+  "Confidence": 96.91,
+  "BoundingBox": {
+    "Height": 0.5064,
+    "Left": 0.2197,
+    "Top": 0.2040,
+    "Width": 0.2496
+  },
+  "Parents": [
+    "Animal",
+    "Mammal",
+    "Wildlife"
   ]
 }
 ```
-
----
-
-### CloudWatch Logs
-
-CloudWatch Logs から、  
-**フレーム抽出 → Rekognition 判定 → S3 保存 → Kinesis Data Streams 送信 → SES 通知**  
-までの一連の処理を確認できる  
-
-<p align="center">
-  <img src="./docs/images/kuma-detection-log.png" alt="CloudWatch Logs" width="700">
-</p>
 
 ---
 
