@@ -8,8 +8,10 @@ node_modules
 .cdk.staging
 cdk.out
 
-# macOS metadata
+# macOS metadata元のテーブル
 .DS_Store
 
 # test data
 /movie/
+
+docs/icons/

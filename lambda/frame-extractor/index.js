@@ -41,9 +41,6 @@ function rgbaToInt(r, g, b, a = 255) {
   ) >>> 0; // unsigned 32bit にする
 }
 
-// TODO: KVS -> Rekognition のフレーム取得 & 検出デバッグ
-//       DynamoDB登録 -> SNS メール通知のデバッグ（DDB Streams が怪しい）
-
   // 現在時刻（JST）を ISO 表記で出力
   function nowJstIso() {
     const now = new Date(); // UTC
@@ -377,7 +374,7 @@ exports.handler = async (event) => {
         }),
       );
 
-      console.log('ʕ•ᴥ•ʔ Kuma-san ni deatta!!! (ᵔᴥᵔ), payload =', payload);
+      console.log('ʕ•ᴥ•ʔ Kuma detected!!! (ᵔᴥᵔ), payload =', payload);
       console.log('PutRecord to KinesisDataStreams succeeded.');
 
       // 他フレームも判定するならコメントアウト（1回検知できれば OK なら終了する）

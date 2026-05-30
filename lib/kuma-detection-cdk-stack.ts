@@ -13,6 +13,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 
 // StackPropsの拡張
 export interface KumaDetectionStackProps extends cdk.StackProps {
@@ -86,7 +87,8 @@ export class KumaDetectionCdkStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('lambda/frame-extractor'),
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.minutes(15),
+      memorySize: 1024,
       environment: {
         VIDEO_STREAM_ARN: videoStream.attrArn,              // Kinesis Video Streams ARN
         DETECTION_STREAM_NAME: detectionStream.streamName,  // Kinesis Data Streams streamName
@@ -159,14 +161,30 @@ export class KumaDetectionCdkStack extends cdk.Stack {
     // メール通知をするアドレスを指定（コンソール上で行うためコメントアウト）
     // alertTopic.addSubscription(new subscriptions.EmailSubscription('<メールアドレス>'));
 
-    // SNS通知用Lambda
+    // Parameter Store から SES 送受信用メールアドレスを読み込み
+    const mailFrom = ssm.StringParameter.valueForStringParameter(
+      this,
+      '/kuma-detection/mail/from',
+    );
+
+    const mailTo = ssm.StringParameter.valueForStringParameter(
+      this,
+      '/kuma-detection/mail/to',
+    );
+
+    // SNS/SES 通知用 Lambda (通知メールのHTML化により、SNSからSESに変更済)
+    // SES の場合は、コンソールから Amazon SES > 設定 > ID > IDの作成 でメールアドレス登録が必要
     const notifierFunction = new lambda.Function(this, 'kumaDetectionNotifier', {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('lambda/kuma-notifier'), // デプロイ用コードのパス
+      timeout: cdk.Duration.seconds(30),
       environment: {
         TABLE_NAME: props.detectionTable.tableName, // DynamoDB テーブル名
-        TOPIC_ARN: kumaAlertTopic.topicArn,         // SNS トピックARN
+        //TOPIC_ARN: kumaAlertTopic.topicArn,       // SNS トピックARN
+        MAIL_FROM: mailFrom,                        // SES メール送信元
+        MAIL_TO: mailTo,                            // SES メール送信先
+        PRESIGNED_URL_EXPIRES_SECONDS: '86400',     // 署名付きURL 有効時間
       },
     });
 
@@ -182,6 +200,19 @@ export class KumaDetectionCdkStack extends cdk.Stack {
     // Lambda DB Streams 読み取り権限
     props.detectionTable.grantStreamRead(notifierFunction);
     // SNS publish 権限
-    kumaAlertTopic.grantPublish(notifierFunction);
+    //kumaAlertTopic.grantPublish(notifierFunction);
+    // S3 バケットアクセス権限
+    detectionBucket.grantRead(notifierFunction);
+    // SES 送信権限
+    notifierFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'ses:SendEmail',
+          'ses:SendRawEmail',
+        ],
+        resources: ['*'],
+      }),
+    );
+    
   }
 }
